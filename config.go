@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"fmt"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -36,8 +37,9 @@ type TransmissionConfig struct {
 }
 
 type TorrentSortingRule struct {
-	GenreRegex  *regexp.Regexp `json:"genre_regex,omitempty"`
-	Destination Path           `json:"destination,omitempty"`
+	GenreRegexStr string `json:"genre_regex,omitempty"`
+	GenreRegex    *regexp.Regexp
+	Destination   Path `json:"destination,omitempty"`
 }
 
 // ConfigPath returns the path to the configuration file.
@@ -75,6 +77,12 @@ func LoadConfig(configFile Path) (*Config, error) {
 	}
 	if config.KinopoiskApiKey == "" {
 		config.KinopoiskApiKey = os.Getenv("KINOPOISK_API_KEY")
+	}
+	for idx, rule := range config.Transmission.SortingRules {
+		config.Transmission.SortingRules[idx].GenreRegex, err = regexp.Compile(rule.GenreRegexStr)
+		if err != nil {
+			return nil, fmt.Errorf("Could not compile regex `%s`: %s", rule.GenreRegexStr, err)
+		}
 	}
 
 	return &config, nil
