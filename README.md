@@ -27,33 +27,17 @@ Usage
 
 1.  Clone the repository:
     
-    bash
-    
-    Copy code
-    
     `git clone https://github.com/yourusername/media-files-scraper.git`
     
 2.  Install dependencies:
-    
-    bash
-    
-    Copy code
     
     `go mod tidy`
     
 3.  Build the project:
     
-    bash
-    
-    Copy code
-    
     `go build`
     
 4.  Run the executable:
-    
-    bash
-    
-    Copy code
     
     `./media-files-scraper`
     
