@@ -1,4 +1,4 @@
-module media_files_db
+module media-files-scraper
 
 go 1.20
 
