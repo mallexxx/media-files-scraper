@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"io/ioutil"
 	"net/http"
 	"net/url"
 	"regexp"
@@ -116,62 +117,84 @@ func (api IMDbAPI) FindMovies(title string, year string, page int) (MovieSearchR
 	}, nil
 }
 
-func loadIMDbItem(id string) (ImdbResult, error) {
+func loadIMDbMediaInfo(id string) (MediaInfo, error) {
 	// Prepare the IMDb URL
 	imdbURL := fmt.Sprintf("https://www.imdb.com/title/%s", id)
 
-	// Send HTTP GET request
-	response, err := http.Get(imdbURL)
+	fmt.Println("fetching imdb", id)
+
+	client := &http.Client{}
+	req, err := http.NewRequest("GET", imdbURL, nil)
 	if err != nil {
-		return ImdbResult{}, err
+		return MediaInfo{}, err
+	}
+	req.Header.Set("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.36")
+
+	// Send HTTP GET request
+	response, err := client.Do(req)
+	if err != nil {
+		return MediaInfo{}, err
 	}
 	defer response.Body.Close()
 
 	if response.StatusCode != 200 {
-		return ImdbResult{}, fmt.Errorf("HTTP request %s failed with status: %d", imdbURL, response.StatusCode)
+		return MediaInfo{}, fmt.Errorf("HTTP request %s failed with status: %d", imdbURL, response.StatusCode)
 	}
 
 	// Load the HTML document
+	body, err := ioutil.ReadAll(response.Body)
+	html := string(body)
+	// fmt.Println(html)
+
 	doc, err := goquery.NewDocumentFromReader(response.Body)
-	if err != nil {
-		return ImdbResult{}, err
-	}
-
-	// Parse the media information
-	title := doc.Find(".title_wrapper h1").Text()
-	year := strings.TrimSpace(doc.Find(".title_wrapper .subtext a").First().Text())
-	description := strings.TrimSpace(doc.Find(".summary_text").Text())
-
-	// Determine the type of media based on the presence of episode information
-	isTvShow := false
-	if doc.Find(".title_wrapper .subtext .tv_series").Length() > 0 {
-		isTvShow = true
-	}
-
-	result := ImdbResult{
-		Title:       title,
-		Year:        year,
-		IMDbID:      id,
-		isTvShow:    isTvShow,
-		Description: description,
-	}
-
-	return result, nil
-}
-
-func loadIMDbMediaInfo(id string) (MediaInfo, error) {
-	movie, err := loadIMDbItem(id)
 	if err != nil {
 		return MediaInfo{}, err
 	}
-	return MediaInfo{
-		Title: movie.Title,
-		Year:  movie.Year,
+
+	// Parse the media information
+	titleSpan := doc.Find(".hero__primary-text")
+	titleHeader := titleSpan.Parent().Parent()
+
+	title := titleSpan.Text()
+
+	year := strings.TrimSpace(titleHeader.Find("li.ipc-inline-list__item").First().Text())
+
+	isTvShow := false
+	titleHeader.Find("span.ipc-metadata-list-summary-item__li").Each(func(i int, span *goquery.Selection) {
+		text := span.Text()
+		if text == "TV Series" || text == "TV Mini Series" {
+			isTvShow = true
+		}
+	})
+
+	description := strings.TrimSpace(doc.Find("p[data-testid=plot]").Text())
+
+	genreRegex := regexp.MustCompile(`"id":"(\w+)","__typename":"Genre"`)
+	matches := genreRegex.FindAllStringSubmatch(html, -1)
+	var genres []string
+	for _, match := range matches {
+		genres = append(genres, match[1])
+	}
+
+	imgRegex := regexp.MustCompile(`<img.*?srcSet="([^"]+)"`)
+	var posterUrl string
+	if match := imgRegex.FindStringSubmatch(html); len(match) > 1 {
+		posterUrl = strings.Split(match[1], ",")[0]
+	}
+
+	result := MediaInfo{
+		Title: title,
+		Year:  year,
 		Id: MediaId{
 			id:     id,
 			idType: IMDB,
 		},
-		IsTvShow: movie.isTvShow,
-		Url:      movie.Url(),
-	}, nil
+		Url:         imdbURL,
+		IsTvShow:    isTvShow,
+		Description: description,
+		Genres:      genres,
+		PosterUrl:   posterUrl,
+	}
+
+	return result, nil
 }

@@ -1,16 +1,37 @@
 {
-    "transmission": "http://transmission:transmission@localhost:9091/transmission/rpc",
+    "transmission": {
+        "rpc": "http://transmission:transmission@localhost:9091/transmission/rpc",
+        "unsorted_dir": "/Users/admin/Downloads/unsorted",
+
+        "sorting_rules": [
+            {
+                "genre_regex": "Animation|мультфильм|Kids",
+                "destination": "D:\\Cartoons"
+            },
+            {
+                "genre_regex": "Documentary|документальный",
+                "destination": "D:\\Documentary"
+            }
+        ],
+        "default_movies_destination":  "D:\\Movies",
+        "default_series_destination": "D:\\Series"
+    },
 
     "tmdb_api_key": "",
     "openai_api_key": "",
     "kinopoisk_api_key": "",
 
     "directories": [
-        "D:\\Movies"
+        "D:\\Movies",
+        "D:\\Series"
     ],
     "output": {
-        "movies": "D:\\kodi\\movies",
-        "series": "D:\\kodi\\series"
+        "movies": [
+            "D:\\kodi\\movies"
+        ],
+        "series": [
+            "D:\\kodi\\series"
+        ]
     },
 
     "tmdb_movie_genres": [

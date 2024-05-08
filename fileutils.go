@@ -27,12 +27,14 @@ func getDBPath() string {
 
 func videoExistsInOutDirs(filePath Path, config Config) *Path {
 	name := filePath.lastPathComponent()
-	moviesPath := config.Output.Movies.appendingPathComponent(name)
+	moviesDir := findSuitableDirectoryForSymlink(filePath, config.Output.Movies)
+	moviesPath := moviesDir.appendingPathComponent(name)
 	if moviesPath.exists() {
 		return &moviesPath
 	}
 
-	seriesPath := config.Output.Series.appendingPathComponent(name)
+	seriesDir := findSuitableDirectoryForSymlink(filePath, config.Output.Series)
+	seriesPath := seriesDir.appendingPathComponent(name)
 	if seriesPath.exists() {
 		return &seriesPath
 	}
@@ -343,4 +345,14 @@ func downloadImage(url string, filepath Path) error {
 
 	fmt.Printf("Image downloaded to %s\n", filepath)
 	return nil
+}
+
+func findSuitableDirectoryForSymlink(path Path, directories []Path) Path {
+	volumeName := filepath.VolumeName(string(path))
+	for _, directory := range directories {
+		if filepath.VolumeName(string(directory)) == volumeName {
+			return directory
+		}
+	}
+	return Path("")
 }

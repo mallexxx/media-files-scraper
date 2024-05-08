@@ -36,21 +36,29 @@ func getTorrentsByPath(transmissionURL string) (map[string]transmissionrpc.Torre
 	// Create a map to store torrents by lowercased file paths
 	torrentMap := make(map[string]transmissionrpc.Torrent)
 	for _, torrent := range torrents {
-		// torrentJSON, err := json.MarshalIndent(torrent, "", "  ")
-		// if err != nil {
-		// 	fmt.Println("Error encoding torrent to JSON:", err)
-		// 	return nil, err
-		// }
-		// fmt.Println(string(torrentJSON))
-
 		// Get the root directory of the torrent
-		rootDir := filepath.Join(*torrent.DownloadDir, *torrent.Name)
+		rootDir := filepath.Join( /**torrent.DownloadDir*/ "/Users/admin/Downloads/unsorted", *torrent.Name)
 		// Convert root directory to lower case for case-insensitive comparison
 		lowerRootDir := strings.ToLower(rootDir)
 		// Add the torrent to the map indexed by the lowercased root directory
 		torrentMap[lowerRootDir] = torrent
 	}
 	return torrentMap, nil
+}
+
+func moveTorrent(id int64, newLocation Path, transmissionURL string) error {
+	endpoint, err := url.Parse(transmissionURL)
+	if err != nil {
+		panic(err)
+	}
+
+	// Initialize Transmission RPC client
+	client, err := transmissionrpc.New(endpoint, nil)
+	if err != nil {
+		return err
+	}
+
+	return client.TorrentSetLocation(context.Background(), id, string(newLocation), true)
 }
 
 func loadTitleYearIMDbIdFromRutracker(url string) (string, string, string, error) {

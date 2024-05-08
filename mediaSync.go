@@ -17,8 +17,13 @@ type MediaFilesInfo struct {
 
 // process all media folders and sync media items
 func runMediaSync(config Config) error {
+	dirs := config.Directories
+	if config.Transmission.UnsortedDir != "" && config.Transmission.UnsortedDir.isDirectory() {
+		dirs = append(dirs, config.Transmission.UnsortedDir)
+	}
+
 	var matchedItems []Path
-	for _, dir := range config.Directories {
+	for _, dir := range dirs {
 		output, err := runMediaSyncForDir(dir, config)
 		if err != nil {
 			return err
@@ -34,18 +39,20 @@ func runMediaSync(config Config) error {
 		existingItems[strings.ToLower(string(path.removingPathExtension())+"-poster.jpg")] = true
 		existingItems[strings.ToLower(string(path.removingPathExtension())+"-fanart.jpg")] = true
 	}
-	outputDirs := []Path{config.Output.Movies, config.Output.Series}
-	for _, output := range outputDirs {
-		contents, err := output.getDirectoryContents()
-		if err != nil {
-			return err
-		}
-		for _, path := range contents {
-			if _, ok := existingItems[strings.ToLower(string(path))]; !ok {
-				fmt.Println("🪓 removing orphaned item", path)
-				err := path.removeItem()
-				if err != nil {
-					fmt.Println("❌", err)
+	outputDirsArrays := [][]Path{config.Output.Movies, config.Output.Series}
+	for _, outputDirs := range outputDirsArrays {
+		for _, output := range outputDirs {
+			contents, err := output.getDirectoryContents()
+			if err != nil {
+				return err
+			}
+			for _, path := range contents {
+				if _, ok := existingItems[strings.ToLower(string(path))]; !ok {
+					fmt.Println("🪓 removing orphaned item", path)
+					err := path.removeItem()
+					if err != nil {
+						fmt.Println("❌", err)
+					}
 				}
 			}
 		}
@@ -81,9 +88,10 @@ func processMediaItem(path Path, config Config, torrents *map[string]transmissio
 	if outDir := videoExistsInOutDirs(path, config); outDir != nil {
 		fmt.Println("✔️", path, "already processed")
 		output := []Path{*outDir}
-		if outDir.removingLastPathComponent() == config.Output.Series {
+		seriesDir := findSuitableDirectoryForSymlink(path, config.Output.Series)
+		if outDir.removingLastPathComponent() == seriesDir {
 			// sync TV Show media files if missing
-			_, err := syncTvShow(MediaFilesInfo{Path: path, Info: MediaInfo{}}, config.Output.Series, config)
+			_, err := syncTvShow(MediaFilesInfo{Path: path, Info: MediaInfo{}}, seriesDir, config)
 			if err != nil {
 				return []Path{}, nil
 			}
@@ -95,8 +103,9 @@ func processMediaItem(path Path, config Config, torrents *map[string]transmissio
 			// it‘s a fake (empty) directory, movies from the original dir are placed nearby
 			if len(contents) == 0 {
 				videoFiles := getVideoFiles(path)
+				moviesDir := findSuitableDirectoryForSymlink(path, config.Output.Movies)
 				for _, path := range videoFiles {
-					outputPath := config.Output.Movies.appendingPathComponent(path.lastPathComponent())
+					outputPath := moviesDir.appendingPathComponent(path.lastPathComponent())
 					// fmt.Println("🟠 taking nearby file", outputPath)
 					output = append(output, outputPath)
 				}
@@ -109,16 +118,32 @@ func processMediaItem(path Path, config Config, torrents *map[string]transmissio
 	mediaInfo, err := getMediaInfo(path, torrents, config)
 
 	if multiMoviesErr, ok := err.(*FolderSeemsContainingMultipleMoviesError); ok {
+		tmpMediaInfo := MediaFilesInfo{
+			Path:       path,
+			VideoFiles: multiMoviesErr.videoFiles,
+			Info: MediaInfo{
+				IsTvShow: false,
+			},
+		}
+		if err := moveMediaItemFromUnsortedIfNeeded(&path, torrents, &tmpMediaInfo, config); err != nil {
+			fmt.Println("❌ move from unsorted failed", err)
+			return []Path{}, err
+		}
+
 		var output []Path
 		// it seems the media item folder contains separate movie files, process them individually
-		for _, videoFile := range multiMoviesErr.videoFiles {
+		for _, videoFile := range tmpMediaInfo.VideoFiles {
 			output, err = processMediaItem(videoFile, config, torrents)
 			if err != nil {
 				return nil, err
 			}
 		}
 		// create folder at output path to ignore the item in future
-		dirPath := config.Output.Movies.appendingPathComponent(path.lastPathComponent())
+		moviesDir := findSuitableDirectoryForSymlink(path, config.Output.Movies)
+		if moviesDir == "" {
+			return []Path{}, fmt.Errorf("no same-volume directory suitable for %s found in config.Output.Series", path)
+		}
+		dirPath := moviesDir.appendingPathComponent(path.lastPathComponent())
 		err = os.MkdirAll(string(dirPath), 0755)
 		output = append(output, dirPath)
 		fmt.Println("🌕 independent proc", output)
@@ -127,6 +152,11 @@ func processMediaItem(path Path, config Config, torrents *map[string]transmissio
 	if err != nil {
 		return []Path{}, err
 	}
+	if err := moveMediaItemFromUnsortedIfNeeded(&path, torrents, &mediaInfo, config); err != nil {
+		fmt.Println("❌ move from unsorted failed", err)
+		return []Path{}, err
+	}
+
 	// If no poster found for TMDB item
 	if mediaInfo.Info.Id.idType == TMDB && mediaInfo.Info.PosterUrl == "" {
 		kpApi := KinopoiskAPI{ApiKey: config.KinopoiskApiKey}
@@ -141,6 +171,50 @@ func processMediaItem(path Path, config Config, torrents *map[string]transmissio
 	}
 
 	return []Path{output}, nil
+}
+
+func moveMediaItemFromUnsortedIfNeeded(path *Path, torrents *map[string]transmissionrpc.Torrent, mediaInfo *MediaFilesInfo, config Config) error {
+	unsortedDir := strings.ToLower(strings.TrimSuffix(string(config.Transmission.UnsortedDir.appendingPathComponent("a")), "a")) // get path with trailing [back]slash
+	if !strings.HasPrefix(strings.ToLower(string(*path)), unsortedDir) {
+		return nil
+	}
+
+	var outDir Path
+	if mediaInfo.Info.IsTvShow && config.Transmission.DefaultSeriesDest != "" {
+		outDir = config.Transmission.DefaultSeriesDest
+	} else if config.Transmission.DefaultMoviesDest != "" {
+		outDir = config.Transmission.DefaultMoviesDest
+	}
+	// find matching rules
+RuleLoop:
+	for _, rule := range config.Transmission.SortingRules {
+		for _, genre := range mediaInfo.Info.Genres {
+			if rule.GenreRegex.MatchString(genre) {
+				outDir = rule.Destination
+				break RuleLoop
+			}
+		}
+	}
+	if outDir == "" {
+		return fmt.Errorf("could not determine destination path for %s", mediaInfo.Info.Title)
+	}
+
+	torrent, ok := (*torrents)[strings.ToLower(string(mediaInfo.Path))]
+	if !ok {
+		return fmt.Errorf("torrent not found for %s", string(mediaInfo.Path))
+	}
+	err := moveTorrent(*torrent.ID, outDir, config.Transmission.Rpc)
+	if err != nil {
+		return err
+	}
+
+	*path = outDir.appendingPathComponent(string(*path)[len(unsortedDir):])
+	mediaInfo.Path = outDir.appendingPathComponent(string(mediaInfo.Path)[len(unsortedDir):])
+	for idx, path := range mediaInfo.VideoFiles {
+		mediaInfo.VideoFiles[idx] = outDir.appendingPathComponent(string(path)[len(unsortedDir):])
+	}
+
+	return nil
 }
 
 type FolderSeemsContainingMultipleMoviesError struct {
@@ -159,8 +233,8 @@ func getMediaInfo(path Path, torrents *map[string]transmissionrpc.Torrent, confi
 	var err error
 
 	// load torrents if needed
-	if *torrents == nil && config.Transmission != "" {
-		torrentsVal, err := getTorrentsByPath(config.Transmission)
+	if *torrents == nil && config.Transmission.Rpc != "" {
+		torrentsVal, err := getTorrentsByPath(config.Transmission.Rpc)
 		if err != nil {
 			fmt.Println("❌ could not load torrent list", err)
 		} else {
@@ -283,6 +357,11 @@ func findMovieMediaInfo(path Path, title string, year string, config Config) (Me
 	if m, s, err := findMovieByTitle(imdbApi, title, year); err == nil && s > score {
 		movie = m
 		score = s
+
+		if mediaInfo, err := loadIMDbMediaInfo(m.Id.id); err == nil {
+			movie = mediaInfo
+		}
+
 	} else if err != nil {
 		fmt.Println("IMDB err", err)
 		err = nil
@@ -319,7 +398,7 @@ func findMovieMediaInfo(path Path, title string, year string, config Config) (Me
 		movie = m
 		score = s
 	} else if err != nil {
-		fmt.Println("IMDB err", err)
+		fmt.Println("TMDB (corrected) err", err)
 		err = nil
 	}
 	if score > 80 {
@@ -333,7 +412,7 @@ func findMovieMediaInfo(path Path, title string, year string, config Config) (Me
 		movie = m
 		score = s
 	} else if err != nil {
-		fmt.Println("IMDB err", err)
+		fmt.Println("TMDB (series) err", err)
 		err = nil
 	}
 
@@ -348,9 +427,17 @@ func findMovieMediaInfo(path Path, title string, year string, config Config) (Me
 // create output folder and video file links for a media item
 func syncMediaItemFiles(mediaInfo MediaFilesInfo, config Config) (Path, error) {
 	if mediaInfo.Info.IsTvShow {
-		return syncTvShow(mediaInfo, config.Output.Series, config)
+		outputDir := findSuitableDirectoryForSymlink(mediaInfo.Path, config.Output.Series)
+		if outputDir == "" {
+			return Path(""), fmt.Errorf("no same-volume directory suitable for %s found in config.Output.Series", mediaInfo.Path)
+		}
+		return syncTvShow(mediaInfo, outputDir, config)
 	} else {
-		return syncMovie(mediaInfo, config.Output.Movies)
+		outputDir := findSuitableDirectoryForSymlink(mediaInfo.Path, config.Output.Movies)
+		if outputDir == "" {
+			return Path(""), fmt.Errorf("no same-volume directory suitable for %s found in config.Output.Movies", mediaInfo.Path)
+		}
+		return syncMovie(mediaInfo, outputDir)
 	}
 }
 
