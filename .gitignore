@@ -5,7 +5,7 @@ build/
 
 media/
 out/
-media_files_db.exe
-media_files_db
+media-files-scraper.exe
+media-files-scraper
 config.json
 
