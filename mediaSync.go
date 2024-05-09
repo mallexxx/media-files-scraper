@@ -152,6 +152,8 @@ func processMediaItem(path Path, config Config, torrents *map[string]transmissio
 	if err != nil {
 		return []Path{}, err
 	}
+	fmt.Println("✅", mediaInfo.Info.Title, "/", mediaInfo.Info.OriginalTitle, mediaInfo.Info.Year)
+
 	if err := moveMediaItemFromUnsortedIfNeeded(&path, torrents, &mediaInfo, config); err != nil {
 		fmt.Println("❌ move from unsorted failed", err)
 		return []Path{}, err
@@ -160,6 +162,7 @@ func processMediaItem(path Path, config Config, torrents *map[string]transmissio
 	// If no poster found for TMDB item
 	if mediaInfo.Info.Id.idType == TMDB && mediaInfo.Info.PosterUrl == "" {
 		kpApi := KinopoiskAPI{ApiKey: config.KinopoiskApiKey}
+		fmt.Println("fetching posters for", mediaInfo.Info.OriginalTitle)
 		if movie, score, err := findMovieByTitle(kpApi, mediaInfo.Info.OriginalTitle, mediaInfo.Info.Year); err == nil && score > 80 {
 			mediaInfo = MediaFilesInfo{Info: movie, Path: mediaInfo.Path, VideoFiles: mediaInfo.VideoFiles}
 		}
@@ -284,7 +287,7 @@ func getMediaInfo(path Path, torrents *map[string]transmissionrpc.Torrent, confi
 		seasonEpisodeRE := regexp.MustCompile(`(?:[Ss](?:eason)?)[\s\W]*(\d{1,2})[\s\W]*(?:[Ee](?:pisode)?)\s*(\d+)`)
 		if match := seasonEpisodeRE.FindStringSubmatch(videoFiles[0].lastPathComponent()); len(match) == 3 {
 			// it‘s a tv series – name matches S01E02 pattern
-		} else if len(videoFiles) == 2 && computeSimilarityScore(string(videoFiles[0]), string(videoFiles[1])) > 90 {
+		} else if len(videoFiles) == 2 && computeSimilarityScore(string(videoFiles[0]), string(videoFiles[1]), false) > 90 {
 			// likely it‘s a 2-part movie
 			mediaInfo, score, err := findMovieMediaInfo(path, title, year, config)
 			if err == nil && score > 80 {
@@ -567,7 +570,7 @@ func syncTvShow(mediaInfo MediaFilesInfo, output Path, config Config) (Path, err
 			bestRank := -1
 
 			for _, episode := range episodes {
-				rank := computeSimilarityScore(episode.Name, name)
+				rank := computeSimilarityScore(episode.Name, name, false)
 				if rank > bestRank {
 					e = episode.EpisodeNumber
 					s = episode.SeasonNumber

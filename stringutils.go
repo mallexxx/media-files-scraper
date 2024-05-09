@@ -61,6 +61,11 @@ var latinToCyrillicMap = map[string]string{
 	"CH": "Ч", "ZH": "Ж", "SH": "Ш", "SCH": "", "YO": "Ë", "JO": "Ë", "YU": "Ю", "JU": "Ю", "YA": "Я", "JA": "Я",
 	"'": "ь",
 }
+var CyrillicToLatinMap = map[string]string{
+	"а": "a", "б": "b", "в": "v", "г": "g", "д": "d", "е": "e", "ё": "yo", "ж": "zh", "з": "z", "и": "i", "й": "j", "к": "k", "л": "l",
+	"м": "m", "н": "n", "о": "o", "п": "p", "р": "r", "с": "s", "т": "t", "у": "u", "ф": "f", "х": "h", "ц": "c", "ч": "ch", "ш": "sh",
+	"щ": "sch", "ъ": "'", "ы": "y", "ь": "", "э": "e", "ю": "yu", "я": "ya",
+}
 
 func containsCyrillicCharacters(s string) bool {
 	for _, r := range s {
@@ -126,7 +131,30 @@ func TransliterateToCyrillic(str string) string {
 	return result.String()
 }
 
-func computeSimilarityScore(title1, title2 string) int {
+func TransliterateToLatin(str string) string {
+	if !containsCyrillicCharacters(str) {
+		return str
+	}
+
+	var result strings.Builder
+	for _, char := range str {
+		lowerChar := unicode.ToLower(char)
+		if transliterated, ok := CyrillicToLatinMap[string(lowerChar)]; ok {
+			if transliterated == "" {
+				continue
+			}
+			if unicode.IsUpper(char) {
+				transliterated = strings.ToUpper(transliterated)
+			}
+			result.WriteString(transliterated)
+		} else {
+			result.WriteString(string(char))
+		}
+	}
+	return result.String()
+}
+
+func computeSimilarityScore(title1, title2 string, useJaroWinkler bool) int {
 	title1 = norm.NFC.String(title1)
 	title2 = norm.NFC.String(title2)
 
@@ -134,9 +162,14 @@ func computeSimilarityScore(title1, title2 string) int {
 	title1 = strings.Trim(nonAlphaNumRegex.ReplaceAllString(title1, " "), " ")
 	title2 = strings.Trim(nonAlphaNumRegex.ReplaceAllString(title2, " "), " ")
 
-	// metric := &metrics.JaroWinkler{CaseSensitive: false}
-	metric := &metrics.SorensenDice{CaseSensitive: false, NgramSize: 2}
-	similarity := strutil.Similarity(title1, title2, metric)
+	var similarity float64
+	if useJaroWinkler {
+		metric := &metrics.JaroWinkler{CaseSensitive: false}
+		similarity = strutil.Similarity(title1, title2, metric)
+	} else {
+		metric := &metrics.SorensenDice{CaseSensitive: false, NgramSize: 2}
+		similarity = strutil.Similarity(title1, title2, metric)
+	}
 
 	return int(similarity * 100)
 }

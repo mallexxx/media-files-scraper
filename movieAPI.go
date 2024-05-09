@@ -56,7 +56,7 @@ func findMovieByTitle[API MovieAPI](api API, title string, year string) (MediaIn
 	}
 
 	if bestScore > 0 {
-		fmt.Println("✅ taking", bestMatch.Title, bestScore)
+		fmt.Println("taking", bestMatch.Title, bestScore)
 		return bestMatch, bestScore, nil
 	} else {
 		return MediaInfo{}, 0, fmt.Errorf("movie matching %s not found", title)
@@ -70,10 +70,10 @@ func findBestMatchingMediaInfo(movies []MediaInfo, query string, year string) ( 
 	for idx, movie := range movies {
 		var score int
 
-		origTitle := movie.OriginalTitle
-		title := movie.Title
-		altTitle := movie.AlternativeTitle
-		queryTitle := query
+		origTitle := TransliterateToLatin(movie.OriginalTitle)
+		title := TransliterateToLatin(movie.Title)
+		altTitle := TransliterateToLatin(movie.AlternativeTitle)
+		queryTitle := TransliterateToLatin(query)
 
 		if title == "" && origTitle != "" {
 			title = origTitle
@@ -83,6 +83,7 @@ func findBestMatchingMediaInfo(movies []MediaInfo, query string, year string) ( 
 			continue
 		}
 
+		useJaroWinkler := false
 		if year != "" && year != movie.Year {
 			if movie.Year != "" {
 				queryTitle += " (" + year + ")"
@@ -94,58 +95,42 @@ func findBestMatchingMediaInfo(movies []MediaInfo, query string, year string) ( 
 				altTitle += " (" + movie.Year + ")"
 			}
 			title += " (" + movie.Year + ")"
+		} else if year == movie.Year {
+			// give more points if the titles have common beginning
+			useJaroWinkler = true
 		}
+
 		// fmt.Println(movie.Id, "➡️ checking", origTitle, title, "⬅", queryTitle)
 		if origTitle != "" && origTitle != title {
-			score = max(computeSimilarityScore(title, queryTitle),
-				computeSimilarityScore(origTitle, queryTitle))
+			score = max(computeSimilarityScore(title, queryTitle, useJaroWinkler),
+				computeSimilarityScore(origTitle, queryTitle, useJaroWinkler))
 		} else {
-			score = computeSimilarityScore(title, queryTitle)
+			score = computeSimilarityScore(title, queryTitle, useJaroWinkler)
 		}
 		if altTitle != "" && altTitle != title && altTitle != origTitle {
-			score = max(score, computeSimilarityScore(altTitle, queryTitle))
+			score = max(score, computeSimilarityScore(altTitle, queryTitle, useJaroWinkler))
 		}
 
-		if score < 100 {
-			origTitle = TransliterateToCyrillic(origTitle)
-			title = TransliterateToCyrillic(title)
-			queryTranslit := TransliterateToCyrillic(queryTitle)
-
-			scoreT1 := 0
-			if origTitle != "" && origTitle != title {
-				// fmt.Println("checking t1", origTitle, "⬅", queryTranslit)
-				scoreT1 = computeSimilarityScore(origTitle, queryTranslit)
-			}
-			// fmt.Println("checking t2", title, "⬅", queryTranslit)
-			scoreT2 := computeSimilarityScore(title, queryTranslit)
-			if scoreT1 > scoreT2 && score < scoreT1 && scoreT1 > 80 {
-				// fmt.Println("taking transliterated match: ", origTitle)
-				score = scoreT1
-			} else if scoreT2 > score && scoreT2 > 80 {
-				// fmt.Println("taking transliterated match: ", title)
-				score = scoreT2
-			}
-
-		}
 		if year != "" && movie.Year != "" {
-			if year == movie.Year {
-				score = min(100, score+20)
-			} else {
-				y1, _ := strconv.Atoi(year)
-				y2, _ := strconv.Atoi(movie.Year)
+			y1, _ := strconv.Atoi(year)
+			y2, _ := strconv.Atoi(movie.Year)
 
-				// consider totally different year if more than 2 years difference
-				if max(y1, y2)-min(y1, y2) > 2 {
-					score = min(0, score-20)
-				}
+			// consider totally different year if more than 2 years difference
+			if max(y1, y2)-min(y1, y2) > 2 {
+				score = max(0, score-20)
 			}
 		}
-		// fmt.Println("⬅️ score:", score)
 
 		if score > bestScore {
 			bestScore = score
 			bestMatch = idx
 		}
+
+		if score == 100 {
+			break
+		}
+
+		// fmt.Println("⬅️ score:", score)
 	}
 
 	return bestMatch, bestScore
