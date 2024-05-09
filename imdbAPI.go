@@ -1,9 +1,8 @@
 package main
 
 import (
+	"bytes"
 	"fmt"
-	"io/ioutil"
-	"net/http"
 	"net/url"
 	"regexp"
 	"strings"
@@ -36,26 +35,15 @@ func (api IMDbAPI) FindMovies(title string, year string, page int) (MovieSearchR
 	}
 	fmt.Println("fetching imdb", title, searchURL)
 
-	client := &http.Client{}
-	req, err := http.NewRequest("GET", searchURL, nil)
+	response, err := FetchURL(searchURL, map[string]string{
+		"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.36",
+	})
 	if err != nil {
 		return MovieSearchResult{}, err
-	}
-	req.Header.Set("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.36")
-
-	// Send HTTP GET request
-	response, err := client.Do(req)
-	if err != nil {
-		return MovieSearchResult{}, err
-	}
-	defer response.Body.Close()
-
-	if response.StatusCode != 200 {
-		return MovieSearchResult{}, fmt.Errorf("HTTP request %s failed with status: %d", searchURL, response.StatusCode)
 	}
 
 	// Load the HTML document
-	doc, err := goquery.NewDocumentFromReader(response.Body)
+	doc, err := goquery.NewDocumentFromReader(bytes.NewReader(response))
 	if err != nil {
 		return MovieSearchResult{}, err
 	}
@@ -123,30 +111,18 @@ func loadIMDbMediaInfo(id string) (MediaInfo, error) {
 
 	fmt.Println("fetching imdb", id)
 
-	client := &http.Client{}
-	req, err := http.NewRequest("GET", imdbURL, nil)
+	response, err := FetchURL(imdbURL, map[string]string{
+		"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.36",
+	})
 	if err != nil {
 		return MediaInfo{}, err
-	}
-	req.Header.Set("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.36")
-
-	// Send HTTP GET request
-	response, err := client.Do(req)
-	if err != nil {
-		return MediaInfo{}, err
-	}
-	defer response.Body.Close()
-
-	if response.StatusCode != 200 {
-		return MediaInfo{}, fmt.Errorf("HTTP request %s failed with status: %d", imdbURL, response.StatusCode)
 	}
 
 	// Load the HTML document
-	body, err := ioutil.ReadAll(response.Body)
-	html := string(body)
+	html := string(response)
 	// fmt.Println(html)
 
-	doc, err := goquery.NewDocumentFromReader(response.Body)
+	doc, err := goquery.NewDocumentFromReader(bytes.NewReader(response))
 	if err != nil {
 		return MediaInfo{}, err
 	}

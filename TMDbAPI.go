@@ -3,13 +3,10 @@ package main
 import (
 	"encoding/json"
 	"fmt"
-	"net/http"
 	"net/url"
 	"sort"
 	"strconv"
 	"strings"
-
-	"github.com/go-resty/resty/v2"
 )
 
 type TMDbAPI struct {
@@ -215,18 +212,14 @@ func (api TMDbAPI) PerformFindMovies(title string, year string, page int) (Movie
 	fmt.Println("fetching tmdb", title, y, p, url)
 
 	// fmt.Println(url)
-	client := resty.New()
-	resp1, err := client.R().Get(url)
+	response, err := FetchURL(url, map[string]string{})
+
 	if err != nil {
 		return MovieSearchResult{}, err
 	}
 
-	if resp1.StatusCode() != 200 {
-		return MovieSearchResult{}, fmt.Errorf("request status: %d: %s", resp1.StatusCode(), resp1.Status())
-	}
-
 	var searchResults TMDbSearchResults
-	if err := json.Unmarshal(resp1.Body(), &searchResults); err != nil {
+	if err := json.Unmarshal(response, &searchResults); err != nil {
 		return MovieSearchResult{}, err
 	}
 
@@ -305,18 +298,13 @@ func (api TMDbAPI) PerformFindSeries(title string, year string, page int) (Movie
 	}
 	fmt.Println("fetching tmdb series", title, y, p, url)
 
-	client := resty.New()
-	resp, err := client.R().Get(url)
+	response, err := FetchURL(url, map[string]string{})
 	if err != nil {
 		return MovieSearchResult{}, err
 	}
 
-	if resp.StatusCode() != 200 {
-		return MovieSearchResult{}, fmt.Errorf("request status: %d: %s", resp.StatusCode(), resp.Status())
-	}
-
 	var searchResults TMDbTVSearchResults
-	if err := json.Unmarshal(resp.Body(), &searchResults); err != nil {
+	if err := json.Unmarshal(response, &searchResults); err != nil {
 		return MovieSearchResult{}, err
 	}
 
@@ -359,7 +347,7 @@ func getSeriesEpisodes(id MediaId, TMDbApiKey string) ([]TMDbEpisode, error) {
 		}
 		tmdbID = id
 	} else {
-		panic(fmt.Sprintf("Unknown idType %d", id.idType))
+		return nil, nil
 	}
 	return getTMDbSeriesEpisodes(tmdbID, TMDbApiKey)
 }
@@ -368,29 +356,24 @@ func findTMDbTVShowByIMDbID(imdbID string, TMDbApiKey string) (TMDbSeries, error
 	url := fmt.Sprintf("https://api.themoviedb.org/3/find/%s?api_key=%s&external_source=imdb_id", imdbID, TMDbApiKey)
 
 	// Send HTTP GET request
-	resp, err := http.Get(url)
+	response, err := FetchURL(url, map[string]string{})
 	if err != nil {
 		return TMDbSeries{}, err
 	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusOK {
-		return TMDbSeries{}, fmt.Errorf("HTTP request %s failed with status: %d", url, resp.StatusCode)
-	}
 
 	// Parse the JSON response
-	var response TMDbFindResponse
-	if err := json.NewDecoder(resp.Body).Decode(&response); err != nil {
+	var result TMDbFindResponse
+	if err := json.Unmarshal(response, &result); err != nil {
 		return TMDbSeries{}, err
 	}
 
 	// Check if there are any TV show results
-	if len(response.TVResults) == 0 {
+	if len(result.TVResults) == 0 {
 		return TMDbSeries{}, fmt.Errorf("no TV show found for IMDb ID: %s", imdbID)
 	}
 
 	// Return the first TV show result
-	return response.TVResults[0], nil
+	return result.TVResults[0], nil
 }
 
 func getTMDbSeriesEpisodes(seriesID int, TMDbApiKey string) ([]TMDbEpisode, error) {
@@ -418,18 +401,13 @@ func getTMDbSeriesEpisodes(seriesID int, TMDbApiKey string) ([]TMDbEpisode, erro
 func getTMDbSeriesDetails(seriesID int, TMDbApiKey string) (TMDbSeriesDetails, error) {
 	url := fmt.Sprintf("https://api.themoviedb.org/3/tv/%d?api_key=%s&language=ru-RU", seriesID, TMDbApiKey)
 
-	client := resty.New()
-	resp, err := client.R().Get(url)
+	response, err := FetchURL(url, map[string]string{})
 	if err != nil {
 		return TMDbSeriesDetails{}, err
 	}
 
-	if resp.StatusCode() != 200 {
-		return TMDbSeriesDetails{}, fmt.Errorf("request status: %d: %s", resp.StatusCode(), resp.Status())
-	}
-
 	var seriesDetails TMDbSeriesDetails
-	if err := json.Unmarshal(resp.Body(), &seriesDetails); err != nil {
+	if err := json.Unmarshal(response, &seriesDetails); err != nil {
 		return TMDbSeriesDetails{}, err
 	}
 
@@ -439,18 +417,13 @@ func getTMDbSeriesDetails(seriesID int, TMDbApiKey string) (TMDbSeriesDetails, e
 func getTMDbSeasonEpisodes(seriesID, seasonNumber int, TMDbApiKey string) ([]TMDbEpisode, error) {
 	url := fmt.Sprintf("https://api.themoviedb.org/3/tv/%d/season/%d?api_key=%s&language=ru-RU", seriesID, seasonNumber, TMDbApiKey)
 
-	client := resty.New()
-	resp, err := client.R().Get(url)
+	response, err := FetchURL(url, map[string]string{})
 	if err != nil {
 		return nil, err
 	}
 
-	if resp.StatusCode() != 200 {
-		return nil, fmt.Errorf("request status: %d: %s", resp.StatusCode(), resp.Status())
-	}
-
 	var seasonDetails TMDbSeason
-	if err := json.Unmarshal(resp.Body(), &seasonDetails); err != nil {
+	if err := json.Unmarshal(response, &seasonDetails); err != nil {
 		return nil, err
 	}
 

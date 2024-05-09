@@ -252,3 +252,12 @@ func Coalesce3(str1, str2, str3 string) string {
 func Coalesce4(str1, str2, str3, str4 string) string {
 	return Coalesce(str1, Coalesce(str2, Coalesce(str3, str4)))
 }
+
+// ReplaceInvalidFilenameChars replaces invalid characters in a string
+// that cannot be used in filenames with underscores.
+func ReplaceInvalidFilenameChars(s string) string {
+	// Define a regular expression to match invalid characters
+	re := regexp.MustCompile(`[^%\w.-]`)
+	// Replace invalid characters with underscores
+	return re.ReplaceAllString(s, "_")
+}

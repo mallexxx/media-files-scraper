@@ -5,8 +5,6 @@ import (
 	"fmt"
 	"net/url"
 	"strconv"
-
-	"github.com/go-resty/resty/v2"
 )
 
 type KinopoiskAPI struct {
@@ -82,23 +80,18 @@ func (api KinopoiskAPI) FindMovies(title string, year string, page int) (MovieSe
 	}
 	fmt.Println("fetching kp", title, p, url)
 
-	client := resty.New()
-
-	headers := map[string]string{
+	response, err := FetchURL(url, map[string]string{
 		"Accept":    "application/json",
 		"X-API-KEY": api.ApiKey,
-	}
-	resp1, err := client.R().SetHeaders(headers).Get(url)
+	})
+
 	if err != nil {
 		return MovieSearchResult{}, err
 	}
 	// fmt.Println(resp1)
-	if resp1.StatusCode() != 200 {
-		return MovieSearchResult{}, fmt.Errorf("request status: %d: %s", resp1.StatusCode(), resp1.Status())
-	}
 
 	var searchResults KinopoiskResponse
-	if err := json.Unmarshal(resp1.Body(), &searchResults); err != nil {
+	if err := json.Unmarshal(response, &searchResults); err != nil {
 		return MovieSearchResult{}, err
 	}
 
