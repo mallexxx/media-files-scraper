@@ -72,6 +72,9 @@ func containsCyrillicCharacters(s string) bool {
 }
 
 func TransliterateToCyrillic(str string) string {
+	if containsCyrillicCharacters(str) {
+		return str
+	}
 	var result strings.Builder
 
 	strlen := len(str)
