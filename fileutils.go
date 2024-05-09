@@ -196,13 +196,16 @@ func readTVShowNfo(path Path) (MediaId, error) {
 			return MediaId{id: uniqueId.Value, idType: TMDB}, nil
 		} else if uniqueId.Type == "imdb" {
 			imdbID = uniqueId.Value
+		} else if uniqueId.Type == "kinopoisk" {
+			return MediaId{id: uniqueId.Value, idType: KPID}, nil
 		}
 	}
 	if imdbID != "" {
 		return MediaId{id: imdbID, idType: IMDB}, nil
 	}
 
-	panic(fmt.Sprint("could not id from TV Show NFO: uniqueIds", tvShow.UniqueIds))
+	fmt.Println("could not id from TV Show NFO: uniqueIds", tvShow.UniqueIds)
+	return MediaId{}, nil
 }
 
 // Function to get video contents at a specified path

@@ -553,7 +553,11 @@ func syncTvShow(mediaInfo MediaFilesInfo, output Path, config Config) (Path, err
 
 		s, e := getSeasonEpisodeFromPath(path, mediaInfo.VideoFiles)
 
-		episodeMap, episodes, err = getEpisodesMap(episodeMap, episodes, mediaInfo.Info.Id, config.TMDbApiKey)
+		if mediaInfo.Info.Id == (MediaId{}) {
+			episodeMap = make(map[int]map[int]TMDbEpisode)
+		} else {
+			episodeMap, episodes, err = getEpisodesMap(episodeMap, episodes, mediaInfo.Info.Id, config.TMDbApiKey)
+		}
 		if err != nil {
 			fmt.Println(err)
 			episodeMap = make(map[int]map[int]TMDbEpisode)
