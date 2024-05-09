@@ -97,7 +97,7 @@ func (api KinopoiskAPI) FindMovies(title string, year string, page int) (MovieSe
 
 	var results []MediaInfo
 	for _, movie := range searchResults.Results {
-		if movie.Type != "movie" && movie.Type != "tv-series" {
+		if movie.Type != "movie" && movie.Type != "tv-series" && movie.Type != "cartoon" && movie.Type != "anime" && movie.Type != "tv-show" && movie.Type != "animated-series" {
 			continue
 		}
 		if api.TvShowsOnly && !movie.IsSeries {
@@ -145,6 +145,10 @@ func (api KinopoiskAPI) FindMovies(title string, year string, page int) (MovieSe
 		}
 		genres := mapSlice(movie.Genres, func(genre KinopoiskGenre) string { return genre.Name })
 
+		year := ""
+		if movie.Year > 1900 {
+			year = strconv.Itoa(movie.Year)
+		}
 		mediaInfo := MediaInfo{
 			Id: MediaId{
 				id:     id,
