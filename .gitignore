@@ -5,6 +5,7 @@ build/
 
 media/
 out/
+cache/
 media-files-scraper.exe
 media-files-scraper
 config.json
