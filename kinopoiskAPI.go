@@ -154,7 +154,7 @@ func (api KinopoiskAPI) FindMovies(title string, year string, page int) (MovieSe
 			OriginalTitle:    origTitle,
 			AlternativeTitle: alternativeTitle,
 			Description:      movie.Description,
-			Year:             strconv.Itoa(movie.Year),
+			Year:             year,
 			IsTvShow:         movie.IsSeries,
 			Url:              url,
 			PosterUrl:        movie.Poster.Url,

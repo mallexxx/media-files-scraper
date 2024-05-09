@@ -125,17 +125,19 @@ func findBestMatchingMediaInfo(movies []MediaInfo, query string, year string) ( 
 				// fmt.Println("taking transliterated match: ", title)
 				score = scoreT2
 			}
-			if year == movie.Year && year != "" {
-				score = min(100, score+20)
-			}
+
 		}
 		if year != "" && movie.Year != "" {
-			y1, _ := strconv.Atoi(year)
-			y2, _ := strconv.Atoi(movie.Year)
+			if year == movie.Year {
+				score = min(100, score+20)
+			} else {
+				y1, _ := strconv.Atoi(year)
+				y2, _ := strconv.Atoi(movie.Year)
 
-			// consider totally different year if more than 2 years difference
-			if max(y1, y2)-min(y1, y2) > 2 {
-				score = min(0, score-20)
+				// consider totally different year if more than 2 years difference
+				if max(y1, y2)-min(y1, y2) > 2 {
+					score = min(0, score-20)
+				}
 			}
 		}
 		// fmt.Println("⬅️ score:", score)
