@@ -251,8 +251,7 @@ func (api TMDbAPI) PerformFindMovies(title string, year string, page int) (Movie
 		results = append(results, mediaInfo)
 	}
 	// take Movies first
-	sort.Slice(results, func(i, j int) bool {
-		// Compare the IsActive field of the structs
+	sort.SliceStable(results, func(i, j int) bool {
 		return !results[i].IsTvShow && results[j].IsTvShow
 	})
 
