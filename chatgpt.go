@@ -120,7 +120,8 @@ func promptAiForMovieNameAndYear(fileName string, chatGptToken string) (string, 
 
 func promptAiForCorrectedYoLetterUsage(fileName string, chatGptToken string) (string, error) {
 	prompt := `
-	I need you to proved the corrected movie name in original Cyrillic/Russian encoding but with correct usage of the letter 'ё' where 'е' is used instead of it
+	I need you to proved the corrected movie name in original Cyrillic/Russian encoding but with correct usage of the letter 'ё' where 'е' is used instead of it.
+	If there is no letter 'е' to 'ё' conversion needed, leave the original name intact.
 	Answer in json format: { 
 		"title": "correct movie title",
 	 	"error": "provide null or error if you can‘t answer for whatever reason."
