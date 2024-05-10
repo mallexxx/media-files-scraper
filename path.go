@@ -85,6 +85,10 @@ func (p Path) appendingPathExtension(ext string) Path {
 var videoExtensions []string = []string{"mov", "m4v", "mkv", "avi", "mp4", "mpg", "wmv", "flv", "webm", "ts", "m2ts", "mxf", "ogv", "3gp", "3g2"}
 
 func (p Path) isVideoFile() bool {
+	if strings.HasPrefix(p.lastPathComponent(), ".") {
+		return false
+	}
+
 	if p.isDirectory() {
 		return p.appendingPathComponent("VIDEO_TS").isDirectory()
 	}

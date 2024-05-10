@@ -220,6 +220,10 @@ func readTVShowNfo(path Path) (MediaId, error) {
 
 // Function to get video contents at a specified path
 func getVideoFiles(path Path) []Path {
+	if strings.HasPrefix(path.lastPathComponent(), ".") {
+		return nil
+	}
+
 	info, err := os.Stat(string(path))
 	if err != nil {
 		Log("Error:", err)
