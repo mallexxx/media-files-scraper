@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"net/url"
 	"path/filepath"
 	"regexp"
 	"strings"
@@ -292,8 +293,26 @@ func Coalesce4(str1, str2, str3, str4 string) string {
 // ReplaceInvalidFilenameChars replaces invalid characters in a string
 // that cannot be used in filenames with underscores.
 func ReplaceInvalidFilenameChars(s string) string {
-	// Define a regular expression to match invalid characters
-	re := regexp.MustCompile(`[^%\w.-]`)
-	// Replace invalid characters with underscores
-	return re.ReplaceAllString(s, "_")
+	name, err := url.QueryUnescape(s)
+	if err != nil {
+		Log("could not query-unescape", s)
+		name = s
+	}
+
+	re1 := regexp.MustCompile(`(?i)(https:\/\/|api_key=[0-9a-z]+&?)`)
+	name = re1.ReplaceAllString(name, "")
+
+	re2 := regexp.MustCompile(`(?i)(api.themoviedb.org)`)
+	name = re2.ReplaceAllString(name, "tmdb_")
+
+	re3 := regexp.MustCompile(`(?i)((?:www\.)kinopoisk.ru)`)
+	name = re3.ReplaceAllString(name, "kp_")
+
+	re4 := regexp.MustCompile(`(?i)((?:www\.)imdb.com)`)
+	name = re4.ReplaceAllString(name, "imdb_")
+
+	re5 := regexp.MustCompile(`[^\%\.\-\p{L}\p{N}]+`)
+	name = re5.ReplaceAllString(name, "_")
+
+	return name
 }

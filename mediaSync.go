@@ -318,6 +318,15 @@ func getMediaInfo(path Path, torrents *map[string]transmissionrpc.Torrent, confi
 	if title == "" {
 		return MediaFilesInfo{}, fmt.Errorf("could not determine movie name for '%s'", path.lastPathComponent())
 	}
+	if strings.Contains(title, "е") {
+		Logf("Prompting AI for corrected ё usage\n")
+		correctedTitle, err := promptAiForCorrectedYoLetterUsage(title, config.OpenAiApiKey)
+		if err != nil {
+			Log("AI Error:", err)
+		}
+		title = correctedTitle
+		Logf("Response: %s\n", title)
+	}
 
 	if len(videoFiles) > 1 {
 		seasonEpisodeRE := regexp.MustCompile(`(?:[Ss](?:eason)?)[\s\W]*(\d{1,2})[\s\W]*(?:[Ee](?:pisode)?)\s*(\d+)`)

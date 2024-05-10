@@ -79,13 +79,13 @@ func promptAI(prompt string, chatGptToken string) (ChatGPTResponse, error) {
 
 type GPTMovieInfo struct {
 	Title string  `json:"title"`
-	Year  string  `json:"year"`
+	Year  string  `json:"year,omitempty"`
 	Error *string `json:"error"`
 }
 
 func promptAiForMovieNameAndYear(fileName string, chatGptToken string) (string, string, error) {
 	prompt := `
-	I need you to proved the corrected movie name that could be scraped by IMDb/TMDb and year if it's present or known.
+	I need you to provide the corrected movie name that could be scraped by IMDb/TMDb and year if it's present or known.
 	The movie name may appear in Russian transliterated to latin form - in this case transliterate it to Russian/cyrillic.
 	Try to maintain sanity, e.g. don't transliterate Padal to Падаль, it should be Падал instead.
 	Do not translate an original Russian name to english or original english to russian.
@@ -116,4 +116,34 @@ func promptAiForMovieNameAndYear(fileName string, chatGptToken string) (string, 
 	}
 
 	return movieInfo.Title, movieInfo.Year, nil
+}
+
+func promptAiForCorrectedYoLetterUsage(fileName string, chatGptToken string) (string, error) {
+	prompt := `
+	I need you to proved the corrected movie name in original Cyrillic/Russian encoding but with correct usage of the letter 'ё' where 'е' is used instead of it
+	Answer in json format: { 
+		"title": "correct movie title",
+	 	"error": "provide null or error if you can‘t answer for whatever reason."
+	}
+	movie: "` + fileName + `"
+	`
+
+	response, err := promptAI(prompt, chatGptToken)
+	if err != nil {
+		return "", err
+	}
+	// Log("Raw Response:", response)
+
+	// Extract the guessed movie name from the response
+	message := response.Choices[0].Message.Content
+
+	var movieInfo GPTMovieInfo
+	if err := json.Unmarshal([]byte(message), &movieInfo); err != nil {
+		return "", err
+	}
+	if movieInfo.Error != nil {
+		return "", fmt.Errorf("%s", *movieInfo.Error)
+	}
+
+	return movieInfo.Title, nil
 }
