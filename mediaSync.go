@@ -629,7 +629,7 @@ func syncTvShow(mediaInfo MediaFilesInfo, output Path, config Config) (Path, err
 			_ /*episode*/ = TMDbEpisode{SeasonNumber: s, EpisodeNumber: e, ID: -1, Name: ""}
 		} else if !ok {
 			// TODO: if file found for an episode but no episode in the series - should throw an error (and probably reconsider the series choice)
-			Log(s, e, path, "episode not found!")
+			Log("⚠️", s, e, path, "episode not found!")
 		}
 
 		targetFileName := path.removingPathExtension().lastPathComponent()
