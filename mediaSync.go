@@ -86,7 +86,7 @@ func runMediaSyncForDir(directory Path, config Config) ([]Path, error) {
 		Log("⏏️ directory not available:", directory)
 		return nil, nil
 	}
-	Log("🍋‍🟩 scanning", directory)
+	Log("🍋 scanning", directory)
 
 	directoryContents, err := directory.getDirectoryContents()
 	if err != nil {
