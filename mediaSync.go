@@ -63,6 +63,10 @@ func runMediaSync(config Config) error {
 
 // process one media folder and sync its media items
 func runMediaSyncForDir(directory Path, config Config) ([]Path, error) {
+	if !directory.exists() {
+		Log("⏏️ directory not available:", directory)
+		return nil, nil
+	}
 	Log("scanning", directory)
 
 	directoryContents, err := directory.getDirectoryContents()
