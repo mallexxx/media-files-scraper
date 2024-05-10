@@ -202,6 +202,22 @@ func cleanupMovieFileName(fileName string) (string, string) {
 		seasonIndex := seasonFolderRE.FindStringIndex(movieName)[0]
 		movieName = movieName[:seasonIndex]
 	}
+
+	leadingNumberRE := regexp.MustCompile(`^(\d{1,3})(?:\D|$)`)
+	trimmed := leadingNumberRE.ReplaceAllString(movieName, "")
+	if trimmed != "" {
+		movieName = trimmed
+	}
+
+	episodeRE := regexp.MustCompile(`(?i)e(?:p(?:isode)?)?\s*(\d{1,3})`)
+	if match := episodeRE.FindStringSubmatch(fileName); len(match) == 2 {
+		epIndex := episodeRE.FindStringIndex(movieName)[0]
+		trimmed := movieName[:epIndex]
+		if trimmed != "" {
+			movieName = trimmed
+		}
+	}
+
 	// Log("2", movieName)
 	if movieName == "" {
 		movieName = strings.TrimSuffix(fileName, filepath.Ext(fileName))
