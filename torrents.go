@@ -37,7 +37,7 @@ func getTorrentsByPath(transmissionURL string) (map[string]transmissionrpc.Torre
 	torrentMap := make(map[string]transmissionrpc.Torrent)
 	for _, torrent := range torrents {
 		// Get the root directory of the torrent
-		rootDir := filepath.Join( /**torrent.DownloadDir*/ "/Users/admin/Downloads/unsorted", *torrent.Name)
+		rootDir := filepath.Join(*torrent.DownloadDir, *torrent.Name)
 		// Convert root directory to lower case for case-insensitive comparison
 		lowerRootDir := strings.ToLower(rootDir)
 		// Add the torrent to the map indexed by the lowercased root directory
