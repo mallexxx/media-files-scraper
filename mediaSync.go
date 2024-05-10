@@ -349,7 +349,10 @@ func getMediaInfo(path Path, torrents *map[string]transmissionrpc.Torrent, confi
 		}
 	}
 
-	mediaInfo, _, err := findMovieMediaInfo(path, title, year, config)
+	mediaInfo, score, err := findMovieMediaInfo(path, title, year, config)
+	if score < 70 {
+		return MediaFilesInfo{}, fmt.Errorf("found match '%s / %s' score is too low: %d", mediaInfo.Title, mediaInfo.OriginalTitle, score)
+	}
 	return MediaFilesInfo{Info: mediaInfo, Path: path, VideoFiles: videoFiles}, err
 }
 
