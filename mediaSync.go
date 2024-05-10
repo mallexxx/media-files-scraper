@@ -73,7 +73,9 @@ func runMediaSyncForDir(directory Path, config Config) ([]Path, error) {
 	var torrents map[string]transmissionrpc.Torrent
 	for _, item := range directoryContents {
 		output, err := processMediaItem(item, config, &torrents)
-		if err != nil {
+		if _, ok := err.(*NoMediaItemsError); ok {
+			continue
+		} else if err != nil {
 			return []Path{}, err
 		}
 		matchedItems = append(matchedItems, output...)
@@ -223,9 +225,15 @@ RuleLoop:
 type FolderSeemsContainingMultipleMoviesError struct {
 	videoFiles []Path
 }
+type NoMediaItemsError struct {
+}
 
 func (ce *FolderSeemsContainingMultipleMoviesError) Error() string {
 	return "The folder seems containing multiple movie files"
+}
+
+func (ce *NoMediaItemsError) Error() string {
+	return "No media files found for the item"
 }
 
 // get MediaInfo for a media item
@@ -234,6 +242,12 @@ func getMediaInfo(path Path, torrents *map[string]transmissionrpc.Torrent, confi
 	var year string
 	var imdbId string
 	var err error
+
+	videoFiles := getVideoFiles(path)
+	if len(videoFiles) == 0 {
+		Log("🚫 no video files found, skipping")
+		return MediaFilesInfo{}, &NoMediaItemsError{}
+	}
 
 	// load torrents if needed
 	if *torrents == nil && config.Transmission.Rpc != "" {
@@ -281,8 +295,6 @@ func getMediaInfo(path Path, torrents *map[string]transmissionrpc.Torrent, confi
 		return MediaFilesInfo{}, fmt.Errorf("could not determine movie name for '%s'", path.lastPathComponent())
 	}
 
-	videoFiles := getVideoFiles(path)
-
 	if len(videoFiles) > 1 {
 		seasonEpisodeRE := regexp.MustCompile(`(?:[Ss](?:eason)?)[\s\W]*(\d{1,2})[\s\W]*(?:[Ee](?:pisode)?)\s*(\d+)`)
 		if match := seasonEpisodeRE.FindStringSubmatch(videoFiles[0].lastPathComponent()); len(match) == 3 {
@@ -311,8 +323,6 @@ func getMediaInfo(path Path, torrents *map[string]transmissionrpc.Torrent, confi
 			// find individual movies instead
 			return MediaFilesInfo{}, &FolderSeemsContainingMultipleMoviesError{videoFiles: videoFiles}
 		}
-	} else if len(videoFiles) == 0 {
-		Log("🚫 no video files found, skipping")
 	}
 
 	mediaInfo, _, err := findMovieMediaInfo(path, title, year, config)
