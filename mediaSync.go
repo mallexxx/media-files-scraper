@@ -309,7 +309,7 @@ func getMediaInfo(path Path, torrents *map[string]transmissionrpc.Torrent, confi
 		}
 
 		// likely it‘s TV Series
-		tmdbSeriesApi := TMDbAPI{ApiKey: config.TMDbApiKey, TVShowSearch: true}
+		tmdbSeriesApi := TMDbAPI{ApiKey: config.TMDbApiKey, TVShowSearch: true, MovieGenres: config.TMDbMovieGenres, TvGenres: config.TMDbTvGenres}
 		mediaInfo, _, err := findMovieByTitle(tmdbSeriesApi, title, year)
 
 		if err == nil {
@@ -337,7 +337,7 @@ func findMovieMediaInfo(path Path, title string, year string, config Config) (Me
 		lang = "ru-RU"
 	}
 
-	tmdbApi := TMDbAPI{ApiKey: config.TMDbApiKey, Language: lang, TVShowSearch: false}
+	tmdbApi := TMDbAPI{ApiKey: config.TMDbApiKey, Language: lang, TVShowSearch: false, MovieGenres: config.TMDbMovieGenres, TvGenres: config.TMDbTvGenres}
 	movie, score, err := findMovieByTitle(tmdbApi, title, year)
 
 	if err == nil && score > 80 {
