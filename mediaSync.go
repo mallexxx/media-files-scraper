@@ -208,6 +208,7 @@ RuleLoop:
 	if !ok {
 		return fmt.Errorf("torrent not found for %s", string(mediaInfo.Path))
 	}
+	Log("moving torrent", *torrent.Name, "to", outDir)
 	err := moveTorrent(*torrent.ID, outDir, config.Transmission.Rpc)
 	if err != nil {
 		return err
