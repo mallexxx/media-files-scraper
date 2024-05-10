@@ -48,6 +48,25 @@ func runMediaSync(config Config) error {
 			}
 			for _, path := range contents {
 				if _, ok := existingItems[strings.ToLower(string(path))]; !ok {
+					if videoSymlink := path.findRelatedVideoSymlink(); videoSymlink != "" {
+						sourceDir, err := config.sourceDirectoryForVideoSymlink(videoSymlink)
+						if err != nil {
+							Log("❌ Error reading symlink:", err)
+						} else /*if sourceDir != ""*/ {
+							if !sourceDir.exists() {
+								Log("⏏️ Symlink points to an unavailable source:", sourceDir)
+								existingItems[strings.ToLower(string(videoSymlink))] = true
+								existingItems[strings.ToLower(string(videoSymlink.removingPathExtension().appendingPathExtension("nfo")))] = true
+								existingItems[strings.ToLower(string(videoSymlink.removingPathExtension())+"-poster.jpg")] = true
+								existingItems[strings.ToLower(string(videoSymlink.removingPathExtension())+"-fanart.jpg")] = true
+								continue
+							} else {
+								Log("🚢 Symlink points to source:", sourceDir)
+								continue
+							}
+						}
+					}
+
 					Log("🪓 removing orphaned item", path)
 					err := path.removeItem()
 					if err != nil {

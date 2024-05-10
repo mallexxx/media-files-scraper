@@ -82,11 +82,12 @@ func (p Path) appendingPathExtension(ext string) Path {
 	return Path(string(p) + "." + ext)
 }
 
+var videoExtensions []string = []string{"mov", "m4v", "mkv", "avi", "mp4", "mpg", "wmv", "flv", "webm", "ts", "m2ts", "mxf", "ogv", "3gp", "3g2"}
+
 func (p Path) isVideoFile() bool {
 	if p.isDirectory() {
 		return p.appendingPathComponent("VIDEO_TS").isDirectory()
 	}
-	videoExtensions := []string{"mov", "m4v", "mkv", "avi", "mp4", "mpg", "wmv", "flv", "webm", "ts", "m2ts", "mxf", "ogv", "3gp", "3g2"}
 	ext := p.extension()
 	for _, videoExt := range videoExtensions {
 		if strings.EqualFold(ext, videoExt) {
@@ -94,6 +95,39 @@ func (p Path) isVideoFile() bool {
 		}
 	}
 
+	return false
+}
+
+func (p Path) findRelatedVideoSymlink() Path {
+	if p.isSymlink() {
+		return p
+	} else if p.isDirectory() {
+		videoFiles := getVideoFiles(p)
+		if len(videoFiles) > 0 {
+			return videoFiles[0]
+		}
+		return ""
+	}
+	fileName := p.lastPathComponent()
+
+	fileName = strings.TrimSuffix(fileName, "-poster.jpg")
+	fileName = strings.TrimSuffix(fileName, "-fanart.jpg")
+	fileName = strings.TrimSuffix(fileName, ".nfo")
+
+	base := p.removingLastPathComponent()
+	for _, ext := range videoExtensions {
+		path := base.appendingPathComponent(fileName + "." + ext)
+		if path.isSymlink() {
+			return path
+		}
+	}
+	return ""
+}
+
+func (p Path) isSymlink() bool {
+	if info, err := os.Lstat(string(p)); err == nil && info.Mode()&os.ModeSymlink != 0 {
+		return true
+	}
 	return false
 }
 

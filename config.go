@@ -6,6 +6,7 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
+	"strings"
 )
 
 // Config represents the configuration structure.
@@ -81,9 +82,24 @@ func LoadConfig(configFile Path) (*Config, error) {
 	for idx, rule := range config.Transmission.SortingRules {
 		config.Transmission.SortingRules[idx].GenreRegex, err = regexp.Compile(rule.GenreRegexStr)
 		if err != nil {
-			return nil, fmt.Errorf("Could not compile regex `%s`: %s", rule.GenreRegexStr, err)
+			return nil, fmt.Errorf("could not compile regex `%s`: %s", rule.GenreRegexStr, err)
 		}
 	}
 
 	return &config, nil
+}
+
+func (c Config) sourceDirectoryForVideoSymlink(symlink Path) (Path, error) {
+	targetPath, err := os.Readlink(string(symlink))
+	if err != nil {
+		return "", err
+	}
+
+	targetPath = strings.ToLower(targetPath)
+	for _, path := range c.Directories {
+		if strings.HasPrefix(targetPath, strings.ToLower(strings.TrimSuffix(string(path.appendingPathComponent("a")), "a"))) {
+			return path, nil
+		}
+	}
+	return "", nil
 }
