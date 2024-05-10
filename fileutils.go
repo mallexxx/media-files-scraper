@@ -329,7 +329,7 @@ func linkVideoFileAndRelatedItems(videoFile Path, output Path, targetNameWithout
 		outPath := output.appendingPathComponent(outName)
 
 		if outPath.exists() {
-			Log(outPath, "exists")
+			// Log(outPath, "exists")
 			continue
 		}
 		Log("creating link for", filePath.lastPathComponent(), "at", outPath)

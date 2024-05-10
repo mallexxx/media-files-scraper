@@ -86,7 +86,7 @@ func runMediaSyncForDir(directory Path, config Config) ([]Path, error) {
 		Log("⏏️ directory not available:", directory)
 		return nil, nil
 	}
-	Log("scanning", directory)
+	Log("🍋‍🟩 scanning", directory)
 
 	directoryContents, err := directory.getDirectoryContents()
 	if err != nil {
@@ -111,7 +111,7 @@ func runMediaSyncForDir(directory Path, config Config) ([]Path, error) {
 // returns paths in output directory matched against the original items
 func processMediaItem(path Path, config Config, torrents *map[string]transmissionrpc.Torrent) ([]Path, error) {
 	if outDir := videoExistsInOutDirs(path, config); outDir != nil {
-		Log("✔️", path, "already processed")
+		Log(path, "already processed")
 		output := []Path{*outDir}
 		seriesDir := findSuitableDirectoryForSymlink(path, config.Output.Series)
 		if outDir.removingLastPathComponent() == seriesDir {
@@ -624,9 +624,9 @@ func syncTvShow(mediaInfo MediaFilesInfo, output Path, config Config) (Path, err
 				}
 			}
 		}
-		episode, ok := episodeMap[s][e]
+		_ /*episode*/, ok := episodeMap[s][e]
 		if !ok && len(episodeMap) == 0 {
-			episode = TMDbEpisode{SeasonNumber: s, EpisodeNumber: e, ID: -1, Name: ""}
+			_ /*episode*/ = TMDbEpisode{SeasonNumber: s, EpisodeNumber: e, ID: -1, Name: ""}
 		} else if !ok {
 			// TODO: if file found for an episode but no episode in the series - should throw an error (and probably reconsider the series choice)
 			Log(s, e, path, "episode not found!")
@@ -639,7 +639,7 @@ func syncTvShow(mediaInfo MediaFilesInfo, output Path, config Config) (Path, err
 			targetFileName = seasonEpisode + " " + targetFileName
 		}
 
-		Log(episode.SeasonNumber, episode.EpisodeNumber, episode.ID, episode.Name, path, "→", targetFileName)
+		// Log(episode.SeasonNumber, episode.EpisodeNumber, episode.ID, episode.Name, path, "→", targetFileName)
 		linkVideoFileAndRelatedItems(path, outputDir, targetFileName, false)
 		// modified = true
 	}
@@ -687,6 +687,6 @@ func getEpisodesMap(existing map[int]map[int]TMDbEpisode, existingEpisodes []TMD
 		episodeMap[episode.SeasonNumber][episode.EpisodeNumber] = episode
 		// Log(episode.SeasonNumber, episode.EpisodeNumber, episode.Name)
 	}
-	Log("episodes:", episodes)
+	Logf("loaded %d episodes\n", len(episodes))
 	return episodeMap, episodes, nil
 }
