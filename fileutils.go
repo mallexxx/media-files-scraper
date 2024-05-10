@@ -243,8 +243,8 @@ func getSeasonEpisodeFromPath(filePath Path, videoFiles []Path) (int /*season*/,
 	fileName := filePath.removingPathExtension().lastPathComponent()
 
 	// Regular expressions to match different formats
-	seasonEpisodeRE := regexp.MustCompile(`(?:[Ss](?:eason)?)[\s\W]*(\d{1,2})[\s\W]*(?:[Ee](?:pisode)?)\s*(\d+)`)
-	seasonRE := regexp.MustCompile(`(?:[Ss](?:eason)?)[\s\W]*(\d{1,2})`)
+	seasonEpisodeRE := regexp.MustCompile(`(?i)(?:s(?:eason)?)[\s\W]*(\d{1,2})[\s\W]*(?:e(?:p(?:isode)?)?)\s*(\d{1,3})`)
+	seasonRE := regexp.MustCompile(`(?i)(?:s(?:eason)?)[\s\W]*(\d{1,2})`)
 	seasonFolderRE := regexp.MustCompile(`(?i)(?:[^0-9]|^)(?:s(?:eason)?|сезон)[\s\W]*(\d{1,2})\b`)
 
 	var seasonNumber, episodeNumber int
@@ -270,6 +270,10 @@ func getSeasonEpisodeFromPath(filePath Path, videoFiles []Path) (int /*season*/,
 	// If episode number is still zero, check if it's in the format "01 name"
 	if episodeNumber == 0 {
 		episodeRE := regexp.MustCompile(`^(\d{1,3})(?:\D|$)`)
+		if match := episodeRE.FindStringSubmatch(fileName); len(match) == 2 {
+			episodeNumber, _ = strconv.Atoi(match[1])
+		}
+		episodeRE = regexp.MustCompile(`(?i)e(?:p(?:isode)?)?\s*(\d{1,3})`)
 		if match := episodeRE.FindStringSubmatch(fileName); len(match) == 2 {
 			episodeNumber, _ = strconv.Atoi(match[1])
 		}
