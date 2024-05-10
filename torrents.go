@@ -85,7 +85,7 @@ func loadTitleYearIMDbIdFromRutracker(url string) (string, string, string, error
 	if err != nil {
 		return "", "", "", err
 	}
-	fmt.Printf("   Title: %s\n", title)
+	Logf("   Title: %s\n", title)
 
 	title, year, err := extractTitleAndYearFromRutrackerTitle(title)
 	if err != nil {

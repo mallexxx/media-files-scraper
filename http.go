@@ -60,7 +60,7 @@ func FetchURL(url string, headers map[string]string) ([]byte, error) {
 	// Write the response body to the cache file
 	err = os.WriteFile(cacheFilename, body, 0644)
 	if err != nil {
-		fmt.Println("Error writing cache file:", err)
+		Log("Error writing cache file:", err)
 	}
 
 	return body, nil

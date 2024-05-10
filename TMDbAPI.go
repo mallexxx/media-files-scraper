@@ -209,9 +209,9 @@ func (api TMDbAPI) PerformFindMovies(title string, year string, page int) (Movie
 	if page > 1 {
 		p = "page: " + strconv.Itoa(page)
 	}
-	fmt.Println("fetching tmdb", title, y, p, url)
+	Log("fetching tmdb", title, y, p, url)
 
-	// fmt.Println(url)
+	// Log(url)
 	response, err := FetchURL(url, map[string]string{})
 
 	if err != nil {
@@ -295,7 +295,7 @@ func (api TMDbAPI) PerformFindSeries(title string, year string, page int) (Movie
 	if page > 1 {
 		p = "page: " + strconv.Itoa(page)
 	}
-	fmt.Println("fetching tmdb series", title, y, p, url)
+	Log("fetching tmdb series", title, y, p, url)
 
 	response, err := FetchURL(url, map[string]string{})
 	if err != nil {

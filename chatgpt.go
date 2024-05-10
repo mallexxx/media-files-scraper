@@ -102,7 +102,7 @@ func promptAiForMovieNameAndYear(fileName string, chatGptToken string) (string, 
 	if err != nil {
 		return "", "", err
 	}
-	// fmt.Println("Raw Response:", response)
+	// Log("Raw Response:", response)
 
 	// Extract the guessed movie name and year from the response
 	message := response.Choices[0].Message.Content

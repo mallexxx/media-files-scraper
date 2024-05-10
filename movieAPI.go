@@ -36,7 +36,7 @@ func findMovieByTitle[API MovieAPI](api API, title string, year string) (MediaIn
 			if bestMatch.IsTvShow {
 				mediaType = "tv show"
 			}
-			fmt.Printf("found %s \"%s\": %d \n", mediaType, bestMatch.Title, score)
+			Logf("found %s \"%s\": %d \n", mediaType, bestMatch.Title, score)
 
 		} else if page > 4 && bestScore >= 80 {
 			// if better (than 80%) match not found on current page > 4 - take the best result so far
@@ -56,7 +56,7 @@ func findMovieByTitle[API MovieAPI](api API, title string, year string) (MediaIn
 	}
 
 	if bestScore > 0 {
-		fmt.Println("taking", bestMatch.Title, bestScore)
+		Log("taking", bestMatch.Title, bestScore)
 		return bestMatch, bestScore, nil
 	} else {
 		return MediaInfo{}, 0, fmt.Errorf("movie matching %s not found", title)
@@ -79,7 +79,7 @@ func findBestMatchingMediaInfo(movies []MediaInfo, query string, year string) ( 
 			title = origTitle
 		}
 		if title == "" && origTitle == "" {
-			fmt.Println("no title!", movie)
+			Log("no title!", movie)
 			continue
 		}
 
@@ -100,7 +100,7 @@ func findBestMatchingMediaInfo(movies []MediaInfo, query string, year string) ( 
 			useJaroWinkler = true
 		}
 
-		// fmt.Println(movie.Id, "➡️ checking", origTitle, title, "⬅", queryTitle)
+		// Log(movie.Id, "➡️ checking", origTitle, title, "⬅", queryTitle)
 		if origTitle != "" && origTitle != title {
 			score = max(computeSimilarityScore(title, queryTitle, useJaroWinkler),
 				computeSimilarityScore(origTitle, queryTitle, useJaroWinkler))
@@ -130,7 +130,7 @@ func findBestMatchingMediaInfo(movies []MediaInfo, query string, year string) ( 
 			break
 		}
 
-		// fmt.Println("⬅️ score:", score)
+		// Log("⬅️ score:", score)
 	}
 
 	return bestMatch, bestScore

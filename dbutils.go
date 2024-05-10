@@ -2,7 +2,6 @@ package main
 
 import (
 	"database/sql"
-	"fmt"
 
 	_ "github.com/mattn/go-sqlite3"
 )
@@ -58,7 +57,7 @@ func insertMediaEntity(db *sql.DB, filePath string) (int64, error) {
 	var lastInsertID int64
 	err := db.QueryRow("INSERT OR IGNORE INTO mediaEntities (path) VALUES (?) RETURNING id", filePath).Scan(&lastInsertID)
 	if err == nil {
-		fmt.Printf("added %s", filePath)
+		Logf("added %s", filePath)
 	} else {
 		if err == sql.ErrNoRows {
 			// No rows were inserted, perform the SELECT query to get the existing ID

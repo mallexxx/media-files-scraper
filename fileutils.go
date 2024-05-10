@@ -14,7 +14,7 @@ import (
 	"strings"
 )
 
-func getDBPath() string {
+func logPath() string {
 	// Get the current directory of the executable
 	exePath, err := os.Executable()
 	if err != nil {
@@ -22,7 +22,19 @@ func getDBPath() string {
 	}
 	dir := filepath.Dir(exePath)
 
-	return filepath.Join(dir, "media.db")
+	return filepath.Join(dir, "log.txt")
+}
+
+// Log writes a message to both the console and the log file
+func Log(args ...interface{}) {
+	fmt.Println(args...)    // Output to console
+	logger.Println(args...) // Output to log file
+}
+
+// Logf writes a formatted message to both the console and the log file
+func Logf(format string, args ...interface{}) {
+	fmt.Printf(format, args...)    // Output to console
+	logger.Printf(format, args...) // Output to log file
 }
 
 func videoExistsInOutDirs(filePath Path, config Config) *Path {
@@ -61,7 +73,7 @@ func movieFileNameWithoutExtension(videoFiles []Path) string {
 func writeMovieNfo(mediaInfo MediaFilesInfo, output Path) error {
 	fileName := movieFileNameWithoutExtension(mediaInfo.VideoFiles) + ".nfo"
 	filePath := output.appendingPathComponent(fileName)
-	fmt.Println("Writing Movie Nfo to", filePath)
+	Log("Writing Movie Nfo to", filePath)
 	// Create or truncate the .nfo file
 	file, err := os.Create(string(filePath))
 	if err != nil {
@@ -110,7 +122,7 @@ func writeMovieNfoXML(w io.Writer, mediaInfo MediaInfo) {
 }
 
 func writeTVShowNfo(mediaInfo MediaInfo, nfoPath Path) error {
-	fmt.Println("Writing TVShow Nfo to", nfoPath)
+	Log("Writing TVShow Nfo to", nfoPath)
 	// Create or truncate the .nfo file
 	file, err := os.Create(string(nfoPath))
 	if err != nil {
@@ -204,7 +216,7 @@ func readTVShowNfo(path Path) (MediaId, error) {
 		return MediaId{id: imdbID, idType: IMDB}, nil
 	}
 
-	fmt.Println("could not id from TV Show NFO: uniqueIds", tvShow.UniqueIds)
+	Log("could not id from TV Show NFO: uniqueIds", tvShow.UniqueIds)
 	return MediaId{}, nil
 }
 
@@ -212,7 +224,7 @@ func readTVShowNfo(path Path) (MediaId, error) {
 func getVideoFiles(path Path) []Path {
 	info, err := os.Stat(string(path))
 	if err != nil {
-		fmt.Println("Error:", err)
+		Log("Error:", err)
 		return nil
 	}
 
@@ -283,7 +295,7 @@ func linkVideoFileAndRelatedItems(videoFile Path, output Path, targetNameWithout
 	}
 	for _, filePath := range contents {
 		if !strings.HasPrefix(strings.ToLower(filePath.lastPathComponent()), name+".") {
-			// fmt.Println("skipping", filePath.lastPathComponent(), "noprefix", name+".")
+			// Log("skipping", filePath.lastPathComponent(), "noprefix", name+".")
 			continue
 		}
 
@@ -311,10 +323,10 @@ func linkVideoFileAndRelatedItems(videoFile Path, output Path, targetNameWithout
 		outPath := output.appendingPathComponent(outName)
 
 		if outPath.exists() {
-			fmt.Println(outPath, "exists")
+			Log(outPath, "exists")
 			continue
 		}
-		fmt.Println("creating link for", filePath.lastPathComponent(), "at", outPath)
+		Log("creating link for", filePath.lastPathComponent(), "at", outPath)
 
 		err := os.Symlink(string(filePath), string(outPath))
 		if err != nil {
@@ -346,7 +358,7 @@ func downloadImage(url string, filepath Path) error {
 		return err
 	}
 
-	fmt.Printf("Image downloaded to %s\n", filepath)
+	Logf("Image downloaded to %s\n", filepath)
 	return nil
 }
 

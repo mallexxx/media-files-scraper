@@ -3,6 +3,8 @@ package main
 import (
 	"flag"
 	"fmt"
+	"io"
+	"log"
 	"os"
 
 	"github.com/adrg/strutil"
@@ -10,7 +12,23 @@ import (
 	_ "github.com/mattn/go-sqlite3"
 )
 
+var logger *log.Logger
+
 func main() {
+	// setup logger
+	logFile, err := os.OpenFile(logPath(), os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+	if err != nil {
+		fmt.Println("Error opening log file:", err)
+		os.Exit(1)
+	}
+	logger = log.New(io.MultiWriter(os.Stdout, logFile), "", log.LstdFlags)
+	logger.Println(`-----------------------------------------------------
+	
+
+=====================================================`)
+	logger.Println(`	Started
+=====================================================`)
+
 	configFlag := flag.String("config", "", "Path to the configuration file")
 	flag.StringVar(configFlag, "c", "", "Path to the configuration file (shorthand)")
 
@@ -47,7 +65,7 @@ func main() {
 	// case "update":
 	// 	updateMetadata()
 	// default:
-	// 	fmt.Printf("Unknown command: %s\n", command)
+	// 	Logf("Unknown command: %s\n", command)
 	// 	help()
 	// 	os.Exit(1)
 	// }
@@ -89,7 +107,7 @@ func testMatching() {
 		similarity5 := strutil.Similarity("Собачий секрет", "Секреты собак", metric)
 		similarity6 := strutil.Similarity("Секреты", "Секреты собак", metric)
 
-		fmt.Printf("%s: %.2f/%.2f %.2f %.2f/%.2f/%.2f\n", k, similarity, similarity2, similarity3, similarity4, similarity5, similarity6)
+		Logf("%s: %.2f/%.2f %.2f %.2f/%.2f/%.2f\n", k, similarity, similarity2, similarity3, similarity4, similarity5, similarity6)
 	}
 	os.Exit(0)
 
@@ -101,9 +119,9 @@ func help() {
 		"update": "Update metadata",
 	}
 
-	fmt.Printf("Usage: %s <command>\n", os.Args[0])
+	Logf("Usage: %s <command>\n", os.Args[0])
 	fmt.Println("Commands:")
 	for cmd, desc := range commandDescriptions {
-		fmt.Printf("  %s: %s\n", cmd, desc)
+		Logf("  %s: %s\n", cmd, desc)
 	}
 }

@@ -33,7 +33,7 @@ func (api IMDbAPI) FindMovies(title string, year string, page int) (MovieSearchR
 	if year != "" {
 		searchURL += "&year=" + year
 	}
-	fmt.Println("fetching imdb", title, searchURL)
+	Log("fetching imdb", title, searchURL)
 
 	response, err := FetchURL(searchURL, map[string]string{
 		"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.36",
@@ -48,7 +48,7 @@ func (api IMDbAPI) FindMovies(title string, year string, page int) (MovieSearchR
 		return MovieSearchResult{}, err
 	}
 
-	// fmt.Println("response:", response.Body)
+	// Log("response:", response.Body)
 
 	// Parse the search results
 	var results []MediaInfo
@@ -75,7 +75,7 @@ func (api IMDbAPI) FindMovies(title string, year string, page int) (MovieSearchR
 		if len(match) > 1 {
 			imdbID = match[1]
 		} else {
-			fmt.Printf("could not extract id from %s for \"%s\" - skipping\n", imdbID, title)
+			Logf("could not extract id from %s for \"%s\" - skipping\n", imdbID, title)
 			return
 		}
 
@@ -109,7 +109,7 @@ func loadIMDbMediaInfo(id string) (MediaInfo, error) {
 	// Prepare the IMDb URL
 	imdbURL := fmt.Sprintf("https://www.imdb.com/title/%s", id)
 
-	fmt.Println("fetching imdb", id)
+	Log("fetching imdb", id)
 
 	response, err := FetchURL(imdbURL, map[string]string{
 		"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.36",
@@ -120,7 +120,7 @@ func loadIMDbMediaInfo(id string) (MediaInfo, error) {
 
 	// Load the HTML document
 	html := string(response)
-	// fmt.Println(html)
+	// Log(html)
 
 	doc, err := goquery.NewDocumentFromReader(bytes.NewReader(response))
 	if err != nil {

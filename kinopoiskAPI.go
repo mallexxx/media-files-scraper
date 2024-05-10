@@ -79,7 +79,7 @@ func (api KinopoiskAPI) FindMovies(title string, year string, page int) (MovieSe
 	if page > 1 {
 		p = "page: " + strconv.Itoa(page)
 	}
-	fmt.Println("fetching kp", title, p, url)
+	Log("fetching kp", title, p, url)
 
 	response, err := FetchURL(url, map[string]string{
 		"Accept":    "application/json",
@@ -89,7 +89,7 @@ func (api KinopoiskAPI) FindMovies(title string, year string, page int) (MovieSe
 	if err != nil {
 		return MovieSearchResult{}, err
 	}
-	// fmt.Println(resp1)
+	// Log(resp1)
 
 	var searchResults KinopoiskResponse
 	if err := json.Unmarshal(response, &searchResults); err != nil {

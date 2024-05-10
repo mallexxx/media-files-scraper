@@ -127,7 +127,7 @@ func TransliterateToCyrillic(str string) string {
 		}
 		idx += 1
 	}
-	// fmt.Println("result:", result.String())
+	// Log("result:", result.String())
 	return result.String()
 }
 
@@ -193,7 +193,7 @@ func cleanupMovieFileName(fileName string) (string, string) {
 	} else {
 		movieName = fileName
 	}
-	// fmt.Println("1", movieName) // TODO: make debug levels: verbose, debug, info..
+	// Log("1", movieName) // TODO: make debug levels: verbose, debug, info..
 
 	seasonFolderRE := regexp.MustCompile(`(?:[Ss](?:eason)?)\s*(\d{1,2})\b`)
 	seasonMatches := seasonFolderRE.FindStringSubmatch(movieName)
@@ -201,37 +201,37 @@ func cleanupMovieFileName(fileName string) (string, string) {
 		seasonIndex := seasonFolderRE.FindStringIndex(movieName)[0]
 		movieName = movieName[:seasonIndex]
 	}
-	// fmt.Println("2", movieName)
+	// Log("2", movieName)
 	if movieName == "" {
 		movieName = strings.TrimSuffix(fileName, filepath.Ext(fileName))
 	}
-	// fmt.Println("3", movieName)
+	// Log("3", movieName)
 	mediaInfoRE := regexp.MustCompile(`(?i)[^a-z0-9]([a-z]+rip|ts|avc|hdr|sdr|uhd|dvd|mvo|matroska|web|dub|Сериал)(?:[^a-z0-9]|$)`)
 	mediaInfoMatches := mediaInfoRE.FindStringSubmatch(movieName)
 	if len(mediaInfoMatches) > 0 {
 		mediaInfoIndex := mediaInfoRE.FindStringIndex(movieName)[0]
 		movieName = movieName[:mediaInfoIndex]
 	}
-	// fmt.Println("4", movieName)
+	// Log("4", movieName)
 	if movieName == "" {
 		movieName = strings.TrimSuffix(fileName, filepath.Ext(fileName))
 	}
-	// fmt.Println("5", movieName)
+	// Log("5", movieName)
 
 	// Regular expression to match parentheses and extract text before it
 	parenRegex := regexp.MustCompile(`^([^(\[\{]*?)\s*[(\[{].+`)
 	parenMatches := parenRegex.FindStringSubmatch(movieName)
 	if len(parenMatches) > 1 {
 		// Extract the movie name from the part before the parentheses
-		// fmt.Printf("extracting movie name before paren: %s\n", parenMatches[1])
+		// Logf("extracting movie name before paren: %s\n", parenMatches[1])
 		movieName = parenMatches[1]
 	}
-	// fmt.Println("6", movieName)
+	// Log("6", movieName)
 
 	if strings.HasPrefix(strings.ToLower(movieName), "bbc") && len(movieName) > 4 {
 		movieName = movieName[3:]
 	}
-	// fmt.Println("8", movieName)
+	// Log("8", movieName)
 
 	// try extracting year from the movie name (again)
 	if year == "" {
@@ -243,7 +243,7 @@ func cleanupMovieFileName(fileName string) (string, string) {
 			movieName = strings.TrimSuffix(movieName, year)
 		}
 	}
-	// fmt.Println("8", movieName)
+	// Log("8", movieName)
 
 	movieName = norm.NFC.String(movieName)
 	nonAlphaNumRegex := regexp.MustCompile(`[^\p{L}\p{N}]+`)
@@ -253,7 +253,7 @@ func cleanupMovieFileName(fileName string) (string, string) {
 	if year != "" {
 		y = "(" + year + ")"
 	}
-	fmt.Println("initial:", movieName, "clean:", cleanedMovieName, y)
+	Log("initial:", movieName, "clean:", cleanedMovieName, y)
 	return cleanedMovieName, year
 }
 

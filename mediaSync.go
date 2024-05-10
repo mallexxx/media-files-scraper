@@ -48,10 +48,10 @@ func runMediaSync(config Config) error {
 			}
 			for _, path := range contents {
 				if _, ok := existingItems[strings.ToLower(string(path))]; !ok {
-					fmt.Println("🪓 removing orphaned item", path)
+					Log("🪓 removing orphaned item", path)
 					err := path.removeItem()
 					if err != nil {
-						fmt.Println("❌", err)
+						Log("❌", err)
 					}
 				}
 			}
@@ -63,7 +63,7 @@ func runMediaSync(config Config) error {
 
 // process one media folder and sync its media items
 func runMediaSyncForDir(directory Path, config Config) ([]Path, error) {
-	fmt.Println("scanning", directory)
+	Log("scanning", directory)
 
 	directoryContents, err := directory.getDirectoryContents()
 	if err != nil {
@@ -86,7 +86,7 @@ func runMediaSyncForDir(directory Path, config Config) ([]Path, error) {
 // returns paths in output directory matched against the original items
 func processMediaItem(path Path, config Config, torrents *map[string]transmissionrpc.Torrent) ([]Path, error) {
 	if outDir := videoExistsInOutDirs(path, config); outDir != nil {
-		fmt.Println("✔️", path, "already processed")
+		Log("✔️", path, "already processed")
 		output := []Path{*outDir}
 		seriesDir := findSuitableDirectoryForSymlink(path, config.Output.Series)
 		if outDir.removingLastPathComponent() == seriesDir {
@@ -106,14 +106,14 @@ func processMediaItem(path Path, config Config, torrents *map[string]transmissio
 				moviesDir := findSuitableDirectoryForSymlink(path, config.Output.Movies)
 				for _, path := range videoFiles {
 					outputPath := moviesDir.appendingPathComponent(path.lastPathComponent())
-					// fmt.Println("🟠 taking nearby file", outputPath)
+					// Log("🟠 taking nearby file", outputPath)
 					output = append(output, outputPath)
 				}
 			}
 		}
 		return output, nil
 	}
-	fmt.Println("➡️ Updating metadata for:", path)
+	Log("➡️ Updating metadata for:", path)
 
 	mediaInfo, err := getMediaInfo(path, torrents, config)
 
@@ -126,7 +126,7 @@ func processMediaItem(path Path, config Config, torrents *map[string]transmissio
 			},
 		}
 		if err := moveMediaItemFromUnsortedIfNeeded(&path, torrents, &tmpMediaInfo, config); err != nil {
-			fmt.Println("❌ move from unsorted failed", err)
+			Log("❌ move from unsorted failed", err)
 			return []Path{}, err
 		}
 
@@ -146,23 +146,23 @@ func processMediaItem(path Path, config Config, torrents *map[string]transmissio
 		dirPath := moviesDir.appendingPathComponent(path.lastPathComponent())
 		err = os.MkdirAll(string(dirPath), 0755)
 		output = append(output, dirPath)
-		fmt.Println("🌕 independent proc", output)
+		Log("🌕 independent proc", output)
 		return output, err
 	}
 	if err != nil {
 		return []Path{}, err
 	}
-	fmt.Println("✅", mediaInfo.Info.Title, "/", mediaInfo.Info.OriginalTitle, mediaInfo.Info.Year)
+	Log("✅", mediaInfo.Info.Title, "/", mediaInfo.Info.OriginalTitle, mediaInfo.Info.Year)
 
 	if err := moveMediaItemFromUnsortedIfNeeded(&path, torrents, &mediaInfo, config); err != nil {
-		fmt.Println("❌ move from unsorted failed", err)
+		Log("❌ move from unsorted failed", err)
 		return []Path{}, err
 	}
 
 	// If no poster found for TMDB item
 	if mediaInfo.Info.Id.idType == TMDB && mediaInfo.Info.PosterUrl == "" {
 		kpApi := KinopoiskAPI{ApiKey: config.KinopoiskApiKey}
-		fmt.Println("fetching posters for", mediaInfo.Info.OriginalTitle)
+		Log("fetching posters for", mediaInfo.Info.OriginalTitle)
 		if movie, score, err := findMovieByTitle(kpApi, mediaInfo.Info.OriginalTitle, mediaInfo.Info.Year); err == nil && score > 80 {
 			mediaInfo = MediaFilesInfo{Info: movie, Path: mediaInfo.Path, VideoFiles: mediaInfo.VideoFiles}
 		}
@@ -239,9 +239,9 @@ func getMediaInfo(path Path, torrents *map[string]transmissionrpc.Torrent, confi
 	if *torrents == nil && config.Transmission.Rpc != "" {
 		torrentsVal, err := getTorrentsByPath(config.Transmission.Rpc)
 		if err != nil {
-			fmt.Println("❌ could not load torrent list", err)
+			Log("❌ could not load torrent list", err)
 		} else {
-			fmt.Println("loaded", len(torrentsVal), "torrents")
+			Log("loaded", len(torrentsVal), "torrents")
 			*torrents = torrentsVal
 		}
 	}
@@ -262,7 +262,7 @@ func getMediaInfo(path Path, torrents *map[string]transmissionrpc.Torrent, confi
 			}
 			return MediaFilesInfo{Info: mediaInfo, Path: path, VideoFiles: videoFiles}, nil
 		} else if err != nil {
-			fmt.Println("could not retreive torrent data:", err)
+			Log("could not retreive torrent data:", err)
 		}
 	}
 	if title == "" {
@@ -312,7 +312,7 @@ func getMediaInfo(path Path, torrents *map[string]transmissionrpc.Torrent, confi
 			return MediaFilesInfo{}, &FolderSeemsContainingMultipleMoviesError{videoFiles: videoFiles}
 		}
 	} else if len(videoFiles) == 0 {
-		fmt.Println("🚫 no video files found, skipping")
+		Log("🚫 no video files found, skipping")
 	}
 
 	mediaInfo, _, err := findMovieMediaInfo(path, title, year, config)
@@ -330,10 +330,10 @@ func findMovieMediaInfo(path Path, title string, year string, config Config) (Me
 	movie, score, err := findMovieByTitle(tmdbApi, title, year)
 
 	if err == nil && score > 80 {
-		fmt.Println("Found TMDB:", movie.Id.id, movie.Title, movie.Year)
+		Log("Found TMDB:", movie.Id.id, movie.Title, movie.Year)
 		return movie, score, nil
 	} else if err != nil {
-		fmt.Println("TMDB err", err)
+		Log("TMDB err", err)
 		err = nil
 	}
 
@@ -345,11 +345,11 @@ func findMovieMediaInfo(path Path, title string, year string, config Config) (Me
 				movie = m
 				score = s
 			} else if err != nil {
-				fmt.Println("TMDB translit err", err)
+				Log("TMDB translit err", err)
 				err = nil
 			}
 			if score > 80 {
-				fmt.Println("Found TMDB:", movie.Id.id, movie.Title, movie.Year)
+				Log("Found TMDB:", movie.Id.id, movie.Title, movie.Year)
 				return movie, score, nil
 			}
 		}
@@ -366,11 +366,11 @@ func findMovieMediaInfo(path Path, title string, year string, config Config) (Me
 		}
 
 	} else if err != nil {
-		fmt.Println("IMDB err", err)
+		Log("IMDB err", err)
 		err = nil
 	}
 	if score > 80 {
-		fmt.Println("Found IMDB:", movie.Id.id, movie.Title, movie.Year)
+		Log("Found IMDB:", movie.Id.id, movie.Title, movie.Year)
 		return movie, score, nil
 	}
 
@@ -380,32 +380,32 @@ func findMovieMediaInfo(path Path, title string, year string, config Config) (Me
 		movie = m
 		score = s
 	} else if err != nil {
-		fmt.Println("Kinopoisk err", err)
+		Log("Kinopoisk err", err)
 		err = nil
 	}
 	if score > 80 {
-		fmt.Println("Found Kinopoisk:", movie.Id.id, movie.Title, movie.Year)
+		Log("Found Kinopoisk:", movie.Id.id, movie.Title, movie.Year)
 		return movie, score, nil
 	}
 
 	// prompt ChatGPT to guess a corrected name from the file name
-	fmt.Printf("Prompting AI\n")
+	Logf("Prompting AI\n")
 	title, year, err = promptAiForMovieNameAndYear(path.lastPathComponent(), config.OpenAiApiKey)
 	if err != nil {
 		return MediaInfo{}, 0, err
 	}
-	fmt.Printf("Response: %s (%s)\n", title, year)
+	Logf("Response: %s (%s)\n", title, year)
 
 	// query TMDB with title corrected by ChatGPT
 	if m, s, err := findMovieByTitle(tmdbApi, title, year); err == nil && s > score {
 		movie = m
 		score = s
 	} else if err != nil {
-		fmt.Println("TMDB (corrected) err", err)
+		Log("TMDB (corrected) err", err)
 		err = nil
 	}
 	if score > 80 {
-		fmt.Println("Found TMDB:", movie.Id.id, movie.Title, movie.Year)
+		Log("Found TMDB:", movie.Id.id, movie.Title, movie.Year)
 		return movie, score, nil
 	}
 
@@ -415,11 +415,11 @@ func findMovieMediaInfo(path Path, title string, year string, config Config) (Me
 		movie = m
 		score = s
 	} else if err != nil {
-		fmt.Println("TMDB (series) err", err)
+		Log("TMDB (series) err", err)
 		err = nil
 	}
 
-	fmt.Println("Result:", movie.Id.id, movie.Title, movie.Year)
+	Log("Result:", movie.Id.id, movie.Title, movie.Year)
 	if score == 0 {
 		// TODO: Don‘t crash, but copy item with the present info, log failure
 		panic("movie not found")
@@ -463,7 +463,7 @@ func syncMovie(mediaInfo MediaFilesInfo, output Path) (Path, error) {
 		posterPath := outputDir.appendingPathComponent(posterName)
 		err := downloadImage(mediaInfo.Info.PosterUrl, posterPath)
 		if err != nil {
-			fmt.Println("Could not download poster", err)
+			Log("Could not download poster", err)
 		}
 	}
 	if mediaInfo.Info.BackdropUrl != "" {
@@ -471,7 +471,7 @@ func syncMovie(mediaInfo MediaFilesInfo, output Path) (Path, error) {
 		fanartPath := outputDir.appendingPathComponent(fanartName)
 		err := downloadImage(mediaInfo.Info.BackdropUrl, fanartPath)
 		if err != nil {
-			fmt.Println("Could not download fanart", err)
+			Log("Could not download fanart", err)
 		}
 	}
 
@@ -525,7 +525,7 @@ func syncTvShow(mediaInfo MediaFilesInfo, output Path, config Config) (Path, err
 		if !posterPath.exists() {
 			err := downloadImage(mediaInfo.Info.PosterUrl, posterPath)
 			if err != nil {
-				fmt.Println("Could not download poster", err)
+				Log("Could not download poster", err)
 			}
 		}
 	}
@@ -534,14 +534,14 @@ func syncTvShow(mediaInfo MediaFilesInfo, output Path, config Config) (Path, err
 		if !fanartPath.exists() {
 			err := downloadImage(mediaInfo.Info.BackdropUrl, fanartPath)
 			if err != nil {
-				fmt.Println("Could not download fanart", err)
+				Log("Could not download fanart", err)
 			}
 		}
 	}
 
 	// list already existing episode files
 	existingFiles := getVideoFiles(outputDir)
-	// fmt.Println("existing videos from", outputDir, ":", existingFiles)
+	// Log("existing videos from", outputDir, ":", existingFiles)
 
 	var episodes []TMDbEpisode
 	var episodeMap map[int]map[int]TMDbEpisode = nil
@@ -562,7 +562,7 @@ func syncTvShow(mediaInfo MediaFilesInfo, output Path, config Config) (Path, err
 			episodeMap, episodes, err = getEpisodesMap(episodeMap, episodes, mediaInfo.Info.Id, config.TMDbApiKey)
 		}
 		if err != nil {
-			fmt.Println(err)
+			Log(err)
 			episodeMap = make(map[int]map[int]TMDbEpisode)
 		}
 		if e == 0 {
@@ -583,7 +583,7 @@ func syncTvShow(mediaInfo MediaFilesInfo, output Path, config Config) (Path, err
 			episode = TMDbEpisode{SeasonNumber: s, EpisodeNumber: e, ID: -1, Name: ""}
 		} else if !ok {
 			// TODO: if file found for an episode but no episode in the series - should throw an error (and probably reconsider the series choice)
-			fmt.Println(s, e, path, "episode not found!")
+			Log(s, e, path, "episode not found!")
 		}
 
 		targetFileName := path.removingPathExtension().lastPathComponent()
@@ -593,7 +593,7 @@ func syncTvShow(mediaInfo MediaFilesInfo, output Path, config Config) (Path, err
 			targetFileName = seasonEpisode + " " + targetFileName
 		}
 
-		fmt.Println(episode.SeasonNumber, episode.EpisodeNumber, episode.ID, episode.Name, path, "→", targetFileName)
+		Log(episode.SeasonNumber, episode.EpisodeNumber, episode.ID, episode.Name, path, "→", targetFileName)
 		linkVideoFileAndRelatedItems(path, outputDir, targetFileName, false)
 		// modified = true
 	}
@@ -605,7 +605,7 @@ func indexOfEpisode(existingFiles []Path, fileName string) int {
 	fileNameLowercase := strings.ToLower(fileName)
 	for idx, path := range existingFiles {
 		name := strings.ToLower(path.lastPathComponent())
-		// fmt.Println("inspecting", name, "against", fileNameLowercase)
+		// Log("inspecting", name, "against", fileNameLowercase)
 		if name == fileNameLowercase {
 			return idx
 		}
@@ -614,7 +614,7 @@ func indexOfEpisode(existingFiles []Path, fileName string) int {
 			return idx
 		}
 	}
-	// fmt.Println(fileNameLowercase, "not found")
+	// Log(fileNameLowercase, "not found")
 	return -1
 }
 
@@ -639,8 +639,8 @@ func getEpisodesMap(existing map[int]map[int]TMDbEpisode, existingEpisodes []TMD
 
 		// Add the episode to the map
 		episodeMap[episode.SeasonNumber][episode.EpisodeNumber] = episode
-		// fmt.Println(episode.SeasonNumber, episode.EpisodeNumber, episode.Name)
+		// Log(episode.SeasonNumber, episode.EpisodeNumber, episode.Name)
 	}
-	fmt.Println("episodes:", episodes)
+	Log("episodes:", episodes)
 	return episodeMap, episodes, nil
 }
