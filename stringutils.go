@@ -29,12 +29,15 @@ func extractTitleAndYearFromRutrackerTitle(title string) (string, string, error)
 
 		// Split the title by "/"
 		parts := strings.Split(extractedTitle, "/")
+		originalTitle := strings.TrimSpace(extractedTitle)
 		// Trim the spaces from each part
 		for i := range parts {
-			parts[i] = strings.TrimSpace(parts[i])
+			title := strings.TrimSpace(parts[i])
+			if len(title) > 3 && !containsCyrillicCharacters(title) {
+				// Take the last fitting as the original title
+				originalTitle = title
+			}
 		}
-		// Take the last part as the original title
-		originalTitle := parts[len(parts)-1]
 
 		return originalTitle, year, nil
 	} else {
