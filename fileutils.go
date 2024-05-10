@@ -27,14 +27,12 @@ func logPath() string {
 
 // Log writes a message to both the console and the log file
 func Log(args ...interface{}) {
-	fmt.Println(args...)    // Output to console
-	logger.Println(args...) // Output to log file
+	logger.Println(args...)
 }
 
 // Logf writes a formatted message to both the console and the log file
 func Logf(format string, args ...interface{}) {
-	fmt.Printf(format, args...)    // Output to console
-	logger.Printf(format, args...) // Output to log file
+	logger.Printf(format, args...)
 }
 
 func videoExistsInOutDirs(filePath Path, config Config) *Path {
