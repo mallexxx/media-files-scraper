@@ -91,6 +91,7 @@ func loadTitleYearIMDbIdFromRutracker(url string) (string, string, string, error
 	if err != nil {
 		return "", "", "", err
 	}
+	Logf("   Cleaned: %s\n", title)
 
 	return title, year, topic.IMDbID, nil
 }
