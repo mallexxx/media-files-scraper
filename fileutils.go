@@ -168,6 +168,38 @@ func writeTVShowNfoXML(w io.Writer, mediaInfo MediaInfo) {
 	enc.Flush()
 }
 
+func writeEpisodeNfo(season int, episode int, title string, originalTitle string, mediaInfo MediaInfo, nfoPath Path) error {
+	Log("Writing Episode Nfo to", nfoPath)
+	// Create or truncate the .nfo file
+	file, err := os.Create(string(nfoPath))
+	if err != nil {
+		return err
+	}
+	defer file.Close()
+
+	writeEpisodeNfoXML(file, season, episode, title, originalTitle, mediaInfo)
+
+	return nil
+}
+
+func writeEpisodeNfoXML(w io.Writer, season int, episode int, title string, originalTitle string, mediaInfo MediaInfo) {
+	enc := xml.NewEncoder(w)
+	enc.Indent("", "    ")
+
+	enc.EncodeToken(xml.StartElement{Name: xml.Name{Local: "episodedetails"}})
+
+	enc.EncodeElement(title, xml.StartElement{Name: xml.Name{Local: "title"}})
+	enc.EncodeElement(originalTitle, xml.StartElement{Name: xml.Name{Local: "originaltitle"}})
+
+	enc.EncodeElement(mediaInfo.Title, xml.StartElement{Name: xml.Name{Local: "showtitle"}})
+
+	enc.EncodeElement(season, xml.StartElement{Name: xml.Name{Local: "season"}})
+	enc.EncodeElement(episode, xml.StartElement{Name: xml.Name{Local: "episode"}})
+
+	enc.EncodeToken(xml.EndElement{Name: xml.Name{Local: "episodedetails"}})
+	enc.Flush()
+}
+
 type TVShow struct {
 	UniqueIds []UniqueId `xml:"uniqueid"`
 	URL       string     `xml:"url"`

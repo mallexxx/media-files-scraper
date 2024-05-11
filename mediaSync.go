@@ -702,9 +702,9 @@ func syncTvShow(mediaInfo MediaFilesInfo, output Path, config Config) (Path, err
 				}
 			}
 		}
-		_ /*episode*/, ok := episodeMap[s][e]
+		episode, ok := episodeMap[s][e]
 		if !ok && len(episodeMap) == 0 {
-			_ /*episode*/ = TMDbEpisode{SeasonNumber: s, EpisodeNumber: e, ID: -1, Name: ""}
+			episode = TMDbEpisode{SeasonNumber: s, EpisodeNumber: e, ID: -1, Name: ""}
 		} else if !ok {
 			// TODO: if file found for an episode but no episode in the series - should throw an error (and probably reconsider the series choice)
 			Log("⚠️", s, e, path, "episode not found!")
@@ -719,7 +719,12 @@ func syncTvShow(mediaInfo MediaFilesInfo, output Path, config Config) (Path, err
 
 		// Log(episode.SeasonNumber, episode.EpisodeNumber, episode.ID, episode.Name, path, "→", targetFileName)
 		linkVideoFileAndRelatedItems(path, outputDir, targetFileName, false)
-		// modified = true
+
+		// create episode .nfo file if needed
+		nfoPath := path.removingPathExtension().appendingPathExtension("nfo")
+		if (!ok || mediaInfo.Info.Id.idType != TMDB) && !nfoPath.exists() {
+			writeEpisodeNfo(s, e, episode.Name, "", mediaInfo.Info, nfoPath)
+		}
 	}
 
 	return outputDir, err
