@@ -320,15 +320,6 @@ func getMediaInfo(path Path, torrents *map[string]transmissionrpc.Torrent, confi
 	if title == "" {
 		return MediaFilesInfo{}, fmt.Errorf("could not determine movie name for '%s'", path.lastPathComponent())
 	}
-	if strings.Contains(title, "е") {
-		Logf("Prompting AI for corrected ё usage\n")
-		correctedTitle, err := promptAiForCorrectedYoLetterUsage(title, config.OpenAiApiKey)
-		if err != nil {
-			Log("AI Error:", err)
-		}
-		title = correctedTitle
-		Logf("Response: %s\n", title)
-	}
 
 	if len(videoFiles) > 1 {
 		seasonEpisodeRE := regexp.MustCompile(`(?:[Ss](?:eason)?)[\s\W]*(\d{1,2})[\s\W]*(?:[Ee](?:pisode)?)\s*(\d+)`)
@@ -344,13 +335,31 @@ func getMediaInfo(path Path, torrents *map[string]transmissionrpc.Torrent, confi
 
 		// likely it‘s TV Series
 		tmdbAPI.TVShowSearch = true
-		mediaInfo, _, err := findMovieByTitle(tmdbAPI, title, year)
+		mediaInfo, score, err := findMovieByTitle(tmdbAPI, title, year)
 
-		if err == nil {
+		if err == nil && score > 80 {
 			return MediaFilesInfo{Info: mediaInfo, Path: path, VideoFiles: videoFiles}, nil
 		}
+
+		// if not found and there‘s cyrillic `e` it‘s likely it may be transliterated to `ё`
+		if strings.Contains(title, "е") {
+			Logf("Prompting AI for corrected ё usage\n")
+			correctedTitle, err := promptAiForCorrectedYoLetterUsage(title, config.OpenAiApiKey)
+			if err != nil {
+				Log("AI Error:", err)
+			}
+			Logf("Response: %s\n", correctedTitle)
+			if correctedTitle != title {
+				mediaInfo, _, err := findMovieByTitle(tmdbAPI, correctedTitle, year)
+
+				if err == nil {
+					return MediaFilesInfo{Info: mediaInfo, Path: path, VideoFiles: videoFiles}, nil
+				}
+			}
+		}
+
 		kpApi := KinopoiskAPI{ApiKey: config.KinopoiskApiKey, TvShowsOnly: true, GenresMap: config.KinopoiskGenres}
-		mediaInfo, score, err := findMovieByTitle(kpApi, title, year)
+		mediaInfo, score, err = findMovieByTitle(kpApi, title, year)
 
 		if err == nil && score > 80 {
 			return MediaFilesInfo{Info: mediaInfo, Path: path, VideoFiles: videoFiles}, nil
@@ -376,6 +385,19 @@ func findMovieMediaInfo(path Path, title string, year string, config Config) (Me
 
 	tmdbApi := TMDbAPI{ApiKey: config.TMDbApiKey, Language: lang, TVShowSearch: false, MovieGenres: config.TMDbMovieGenres, TvGenres: config.TMDbTvGenres}
 	movie, score, err := findMovieByTitle(tmdbApi, title, year)
+
+	// if not found and there‘s cyrillic `e` it‘s likely it may be transliterated to `ё`
+	if lang == "ru-RU" && (err != nil || score <= 80) && strings.Contains(title, "е") {
+		Logf("Prompting AI for corrected ё usage\n")
+		correctedTitle, e := promptAiForCorrectedYoLetterUsage(title, config.OpenAiApiKey)
+		if e != nil {
+			Log("AI Error:", e)
+		}
+		Logf("Response: %s\n", correctedTitle)
+		if correctedTitle != title {
+			movie, score, err = findMovieByTitle(tmdbApi, correctedTitle, year)
+		}
+	}
 
 	if err == nil && score > 80 {
 		Log("Found TMDB:", movie.Id.id, movie.Title, movie.Year)
