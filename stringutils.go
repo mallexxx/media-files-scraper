@@ -60,7 +60,7 @@ var latinToCyrillicMap = map[string]string{
 	"a": "а", "b": "б", "c": "ц", "d": "д", "e": "е", "f": "ф", "g": "г", "h": "х", "i": "и", "j": "й", "k": "к", "l": "л", "m": "м",
 	"n": "н", "o": "о", "p": "п", "q": "к", "r": "р", "s": "с", "t": "т", "u": "у", "v": "в", "w": "в", "x": "кс", "y": "ы", "z": "з",
 	"ch": "ч", "zh": "ж", "sh": "ш", "sch": "щ", "yo": "ё", "jo": "ё", "yu": "ю", "ju": "ю", "ya": "я", "ja": "я", "'": "ь",
-	"'a": "я", "iy": "ий", "yy": "ый", "ii": "ий",
+	"'a": "я", "iy": "ий", "yy": "ый", "ii": "ий", "kh": "х",
 }
 var CyrillicToLatinMap = map[string]string{
 	"а": "a", "б": "b", "в": "v", "г": "g", "д": "d", "е": "e", "ё": "yo", "ж": "zh", "з": "z", "и": "i", "й": "j", "к": "k", "л": "l",
@@ -84,7 +84,12 @@ func TransliterateToCyrillic(str string) string {
 	var result strings.Builder
 
 	strlen := len(str)
+	skipChars := 0
 	for idx, char := range str {
+		if skipChars > 0 {
+			skipChars -= 1
+			continue
+		}
 		lowerChar := unicode.ToLower(char)
 
 		if cyrillicChar, ok := latinToCyrillicMap[string(lowerChar)]; ok {
@@ -96,7 +101,7 @@ func TransliterateToCyrillic(str string) string {
 				if complexChar, ok := latinToCyrillicMap[substr]; ok {
 					cyrillicChar = complexChar
 					complexFound = true
-					idx += 2
+					skipChars = 2
 				}
 			}
 			if !complexFound && strlen-idx >= 2 {
@@ -106,7 +111,7 @@ func TransliterateToCyrillic(str string) string {
 				if complexChar, ok := latinToCyrillicMap[substr]; ok {
 					cyrillicChar = complexChar
 					complexFound = true
-					idx += 1
+					skipChars = 1
 				}
 			}
 			if unicode.IsUpper(char) {
