@@ -291,6 +291,9 @@ func commonPrefix(str1, str2 string) string {
 		prefix += string(rune1)
 	}
 
+	trimmedSuffixRegex := regexp.MustCompile(`(?:_|\W)+$`)
+	prefix = trimmedSuffixRegex.ReplaceAllString(prefix, "")
+
 	return prefix
 }
 
