@@ -272,17 +272,23 @@ func cleanupMovieFileName(fileName string, multipleVideoFiles bool) (string, str
 }
 
 func commonPrefix(str1, str2 string) string {
-	minLength := len(str1)
-	if len(str2) < minLength {
-		minLength = len(str2)
-	}
+	fileName1 := norm.NFC.String(str1)
+	fileName2 := norm.NFC.String(str2)
+
+	runes1 := []rune(fileName1)
+	runes2 := []rune(fileName2)
 
 	var prefix string
-	for i := 0; i < minLength; i++ {
-		if str1[i] != str2[i] {
+	for idx, rune1 := range runes1 {
+		if idx >= len(runes2) {
 			break
 		}
-		prefix += string(str1[i])
+		rune2 := runes2[idx]
+		if rune1 != rune2 {
+			break
+		}
+
+		prefix += string(rune1)
 	}
 
 	return prefix
