@@ -55,11 +55,11 @@ func findMovieByTitle[API MovieAPI](api API, title string, year string) (MediaIn
 		page += 1
 	}
 
-	if bestScore > 70 {
-		Logf("taking '%s' score: %d\n", bestMatch.Title, bestScore)
+	if bestScore > 55 {
+		Logf("taking '%s' (%s) score: %d\n", bestMatch.Title, bestMatch.Year, bestScore)
 		return bestMatch, bestScore, nil
 	} else if bestScore > 0 {
-		Logf("found '%s' but not taking as score is too low: %d", bestMatch.Title, bestScore)
+		Logf("found '%s' (%s) but not taking as score is too low: %d", bestMatch.Title, bestMatch.Year, bestScore)
 		return MediaInfo{}, 0, fmt.Errorf("movie matching %s not found", title)
 	} else {
 		return MediaInfo{}, 0, fmt.Errorf("movie matching %s not found", title)

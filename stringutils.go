@@ -329,3 +329,19 @@ func ReplaceInvalidFilenameChars(s string) string {
 
 	return name
 }
+
+func FindCommonItems(arr1 []string, arr2 []string, caseSensitive bool) int {
+	result := 0
+	for _, itm1 := range arr1 {
+		for _, itm2 := range arr2 {
+			if !caseSensitive {
+				itm1 = strings.ToLower(itm1)
+				itm2 = strings.ToLower(itm2)
+			}
+			if itm1 == itm2 {
+				result += 1
+			}
+		}
+	}
+	return result
+}

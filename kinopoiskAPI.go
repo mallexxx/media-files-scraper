@@ -185,7 +185,7 @@ func (api KinopoiskAPI) FindMovies(titlestr string, year string, page int) (Movi
 	}
 	return MovieSearchResult{
 		Results:   results,
-		PageCount: searchResults.PagesCount,
+		PageCount: 1, // Kinopoisk usually does great job matching a movie so don‘t try loading more pages
 	}, nil
 
 }

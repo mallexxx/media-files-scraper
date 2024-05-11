@@ -359,10 +359,25 @@ func getMediaInfo(path Path, torrents *map[string]transmissionrpc.Torrent, confi
 		}
 
 		kpApi := KinopoiskAPI{ApiKey: config.KinopoiskApiKey, TvShowsOnly: true, GenresMap: config.KinopoiskGenres}
-		mediaInfo, score, err = findMovieByTitle(kpApi, title, year)
+		kpMediaInfo, score, err := findMovieByTitle(kpApi, title, year)
 
 		if err == nil && score > 80 {
+			return MediaFilesInfo{Info: kpMediaInfo, Path: path, VideoFiles: videoFiles}, nil
+
+		} else if err == nil && score > 50 && FindCommonItems(
+			// if score is pretty low but the result from 2 sources matches
+			filterSlice([]string{
+				mediaInfo.Title,
+				mediaInfo.OriginalTitle,
+				mediaInfo.AlternativeTitle}, func(item string) bool { return item != "" }),
+			filterSlice([]string{
+				kpMediaInfo.Title,
+				kpMediaInfo.OriginalTitle,
+				kpMediaInfo.AlternativeTitle,
+			}, func(item string) bool { return item != "" }), false /*caseSensitive*/) > 0 {
+
 			return MediaFilesInfo{Info: mediaInfo, Path: path, VideoFiles: videoFiles}, nil
+
 		} else {
 			// find individual movies instead
 			return MediaFilesInfo{}, &FolderSeemsContainingMultipleMoviesError{videoFiles: videoFiles}

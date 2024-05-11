@@ -8,6 +8,16 @@ func mapSlice[T any, M any](a []T, f func(T) M) []M {
 	return n
 }
 
+func filterSlice[T any](a []T, f func(T) bool) []T {
+	var n []T
+	for _, e := range a {
+		if f(e) {
+			n = append(n, e)
+		}
+	}
+	return n
+}
+
 func max(a, b int) int {
 	if a > b {
 		return a
