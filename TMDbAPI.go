@@ -355,7 +355,7 @@ func (api TMDbAPI) FindMovieGenreById(genreId int) string {
 			return genre.Name
 		}
 	}
-	return ""
+	panic(fmt.Sprintf("Movie Genre with id %d not found", genreId))
 }
 
 func (api TMDbAPI) FindTvGenreById(genreId int) string {
@@ -364,7 +364,7 @@ func (api TMDbAPI) FindTvGenreById(genreId int) string {
 			return genre.Name
 		}
 	}
-	return ""
+	panic(fmt.Sprintf("TV Genre with id %d not found", genreId))
 }
 
 func (api TMDbAPI) LoadMovieDetails(id string) (MediaInfo, error) {

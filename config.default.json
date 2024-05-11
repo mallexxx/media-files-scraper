@@ -5,7 +5,7 @@
 
         "sorting_rules": [
             {
-                "genre_regex": "Animation|мультфильм|Kids",
+                "genre_regex": "Animation|мультфильм|Kids|детский",
                 "destination": "D:\\Cartoons"
             },
             {
@@ -36,173 +36,182 @@
 
     "tmdb_movie_genres": [
         {
-        "id": 28,
-        "name": "Action"
+          "id": 28,
+          "name": "боевик"
         },
         {
-        "id": 12,
-        "name": "Adventure"
+          "id": 12,
+          "name": "приключения"
         },
         {
-        "id": 16,
-        "name": "Animation"
+          "id": 16,
+          "name": "мультфильм"
         },
         {
-        "id": 35,
-        "name": "Comedy"
+          "id": 35,
+          "name": "комедия"
         },
         {
-        "id": 80,
-        "name": "Crime"
+          "id": 80,
+          "name": "криминал"
         },
         {
-        "id": 99,
-        "name": "Documentary"
+          "id": 99,
+          "name": "документальный"
         },
         {
-        "id": 18,
-        "name": "Drama"
+          "id": 18,
+          "name": "драма"
         },
         {
-        "id": 10751,
-        "name": "Family"
+          "id": 10751,
+          "name": "семейный"
         },
         {
-        "id": 14,
-        "name": "Fantasy"
+          "id": 14,
+          "name": "фэнтези"
         },
         {
-        "id": 36,
-        "name": "History"
+          "id": 36,
+          "name": "история"
         },
         {
-        "id": 27,
-        "name": "Horror"
+          "id": 27,
+          "name": "ужасы"
         },
         {
-        "id": 10402,
-        "name": "Music"
+          "id": 10402,
+          "name": "музыка"
         },
         {
-        "id": 9648,
-        "name": "Mystery"
+          "id": 9648,
+          "name": "детектив"
         },
         {
-        "id": 10749,
-        "name": "Romance"
+          "id": 10749,
+          "name": "мелодрама"
         },
         {
-        "id": 878,
-        "name": "Science Fiction"
+          "id": 878,
+          "name": "фантастика"
         },
         {
-        "id": 10770,
-        "name": "TV Movie"
+          "id": 10770,
+          "name": "телевизионный фильм"
         },
         {
-        "id": 53,
-        "name": "Thriller"
+          "id": 53,
+          "name": "триллер"
         },
         {
-        "id": 10752,
-        "name": "War"
+          "id": 10752,
+          "name": "военный"
         },
         {
-        "id": 37,
-        "name": "Western"
+          "id": 37,
+          "name": "вестерн"
         }
     ],
     "tmdb_tv_genres": [
         {
-        "id": 10759,
-        "name": "Action & Adventure"
+          "id": 10759,
+          "name": "боевик и приключения"
         },
         {
-        "id": 16,
-        "name": "Animation"
+          "id": 16,
+          "name": "мультфильм"
         },
         {
-        "id": 35,
-        "name": "Comedy"
+          "id": 35,
+          "name": "комедия"
         },
         {
-        "id": 80,
-        "name": "Crime"
+          "id": 80,
+          "name": "криминал"
         },
         {
-        "id": 99,
-        "name": "Documentary"
+          "id": 99,
+          "name": "документальный"
         },
         {
-        "id": 18,
-        "name": "Drama"
+          "id": 18,
+          "name": "драма"
         },
         {
-        "id": 10751,
-        "name": "Family"
+          "id": 10751,
+          "name": "семейный"
         },
         {
-        "id": 10762,
-        "name": "Kids"
+          "id": 10762,
+          "name": "детский"
         },
         {
-        "id": 9648,
-        "name": "Mystery"
+          "id": 9648,
+          "name": "детектив"
         },
         {
-        "id": 10763,
-        "name": "News"
+          "id": 10763,
+          "name": "новости"
         },
         {
-        "id": 10764,
-        "name": "Reality"
+          "id": 10764,
+          "name": "реалити-шоу"
         },
         {
-        "id": 10765,
-        "name": "Sci-Fi & Fantasy"
+          "id": 10765,
+          "name": "нф и фэнтези"
         },
         {
-        "id": 10766,
-        "name": "Soap"
+          "id": 10766,
+          "name": "мыльная опера"
         },
         {
-        "id": 10767,
-        "name": "Talk"
+          "id": 10767,
+          "name": "ток-шоу"
         },
         {
-        "id": 10768,
-        "name": "War & Politics"
+          "id": 10768,
+          "name": "война и политика"
         },
         {
-        "id": 37,
-        "name": "Western"
+          "id": 37,
+          "name": "вестерн"
         }
     ],
-    "kinopoisk_genres": {
-        "аниме": "Animation",
-        "боевик": "Action",
-        "вестерн": "Western",
-        "военный": "War",
-        "детектив": "Mystery",
-        "детский": "Family",
-        "документальный": "Documentary",
-        "драма": "Drama",
-        "история": "History",
-        "комедия": "Comedy",
-        "концерт": "Music",
-        "криминал": "Crime",
-        "мелодрама": "Romance",
-        "музыка": "Music",
-        "мультфильм": "Animation",
-        "мюзикл": "musical",
-        "новости": "News",
-        "приключения": "Adventure",
-        "реальное ТВ": "TV Movie",
-        "семейный": "Family",
-        "ток-шоу": "Talk",
-        "триллер": "Thriller",
-        "ужасы": "Horror",
-        "фантастика": "Science Fiction",
-        "фэнтези": "Fantasy"
+    "genres_map": {
+        "аниме": "мультфильм",
+        "концерт": "музыка",
+        "реальное ТВ": "Реалити-шоу",
+
+        "action": "боевик",
+        "adventure": "приключения",
+        "western": "вестерн",
+        "war": "военный",
+        "mystery": "детектив",
+        "documentary": "документальный",
+        "drama": "драма",
+        "history": "история",
+        "comedy": "комедия",
+        "crime": "криминал",
+        "romance": "мелодрама",
+        "music": "музыка",
+        "animation": "мультфильм",
+        "musical": "мюзикл",
+        "news": "новости",
+        "tv movie": "телевизионный фильм",
+        "family": "семейный",
+        "talk": "ток-шоу",
+        "talk-show": "ток-шоу",
+        "thriller": "триллер",
+        "horror": "ужасы",
+        "science fiction": "фантастика",
+        "sci-fi": "фантастика",
+        "fantasy": "фэнтези",
+        "biography": "биография",
+        "film-noir": "фильм-нуар",
+        "game-show": "игра",
+        "reality-tv": "реалити-шоу",
+        "short": "короткометражка",
+        "sport": "спорт"
     }
 }

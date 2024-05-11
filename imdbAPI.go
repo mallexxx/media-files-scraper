@@ -11,18 +11,7 @@ import (
 )
 
 type IMDbAPI struct {
-}
-
-type ImdbResult struct {
-	Title       string `json:"Title,omitempty"`
-	Year        string `json:"Year,omitempty"`
-	IMDbID      string `json:"IMDbID,omitempty"`
-	isTvShow    bool
-	Description string `json:"Description,omitempty"`
-}
-
-func (r ImdbResult) Url() string {
-	return fmt.Sprintf("https://www.imdb.com/title/%s", r.IMDbID)
+	GenresMap map[string]string
 }
 
 func (api IMDbAPI) FindMovies(titlestr string, year string, page int) (MovieSearchResult, error) {
@@ -106,7 +95,7 @@ func (api IMDbAPI) FindMovies(titlestr string, year string, page int) (MovieSear
 	}, nil
 }
 
-func loadIMDbMediaInfo(id string, tmdbApi TMDbAPI) (MediaInfo, error) {
+func (api IMDbAPI) LoadMediaInfo(id string, tmdbApi TMDbAPI) (MediaInfo, error) {
 	// try loading from tmdb by imdb id first
 	mediaInfo, err := tmdbApi.findTMDbByIMDbID(id)
 	if err == nil && mediaInfo.PosterUrl != "" {
@@ -174,7 +163,16 @@ func loadIMDbMediaInfo(id string, tmdbApi TMDbAPI) (MediaInfo, error) {
 	matches := genreRegex.FindAllStringSubmatch(html, -1)
 	var genres []string
 	for _, match := range matches {
-		genres = append(genres, match[1])
+		var genre string
+		if mappedGenre, ok := api.GenresMap[strings.ToLower(match[1])]; ok {
+			genre = mappedGenre
+		} else {
+			genre = match[1]
+			Logf("❗️ IMDb genre \"%s\" not mapped!", genre)
+		}
+		if genre != "" {
+			genres = append(genres, genre)
+		}
 	}
 
 	// find poster image
