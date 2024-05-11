@@ -194,11 +194,11 @@ func processMediaItem(path Path, config Config, torrents *map[string]transmissio
 			mediaInfo = MediaFilesInfo{Info: movie, Path: mediaInfo.Path, VideoFiles: mediaInfo.VideoFiles}
 
 			// alternatively fetch from IMDb
-		} else if movie, _, err := findMovieByTitle(imdbApi, Coalesce(mediaInfo.Info.OriginalTitle, mediaInfo.Info.Title), mediaInfo.Info.Year); err == nil {
+		} else if movie, score, err := findMovieByTitle(imdbApi, Coalesce(mediaInfo.Info.OriginalTitle, mediaInfo.Info.Title), mediaInfo.Info.Year); err == nil {
 			movie, err = imdbApi.LoadMediaInfo(movie.Id.id, TMDbAPI{})
 			if err == nil {
 				tmdbAPI := TMDbAPI{ApiKey: config.TMDbApiKey, MovieGenres: config.TMDbMovieGenres, TvGenres: config.TMDbTvGenres}
-				if tmdbMovie, err := tmdbAPI.findTMDbByIMDbID(movie.Id.id); err == nil && tmdbMovie.Id.id == mediaInfo.Info.Id.id {
+				if tmdbMovie, err := tmdbAPI.findTMDbByIMDbID(movie.Id.id); (err == nil && tmdbMovie.Id.id == mediaInfo.Info.Id.id) || score > 90 {
 					info := MediaInfo{
 						Id:               mediaInfo.Info.Id,
 						Title:            mediaInfo.Info.Title,
