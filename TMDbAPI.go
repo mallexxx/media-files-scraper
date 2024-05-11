@@ -91,6 +91,10 @@ func (series TMDbSeries) Url() string {
 	return fmt.Sprintf("https://www.themoviedb.org/tv/%d", series.ID)
 }
 
+func (series TMDbSeriesDetails) Url() string {
+	return fmt.Sprintf("https://www.themoviedb.org/tv/%d", series.ID)
+}
+
 func (series TMDbSeries) MediaInfo(api TMDbAPI) MediaInfo {
 	var genres []string
 	for _, genreId := range series.GenreIDs {
@@ -104,6 +108,28 @@ func (series TMDbSeries) MediaInfo(api TMDbAPI) MediaInfo {
 		Id:            MediaId{id: strconv.Itoa(series.ID), idType: TMDB},
 		Title:         Coalesce(series.Name, series.Title),
 		OriginalTitle: Coalesce(series.OriginalName, series.OriginalTitle),
+		Year:          series.Year(),
+		Description:   series.Overview,
+		IsTvShow:      true,
+		Url:           series.Url(),
+		PosterUrl:     series.PosterURL(),
+		BackdropUrl:   series.BackdropURL(),
+		Genres:        genres,
+	}
+}
+
+func (series TMDbSeriesDetails) MediaInfo(api TMDbAPI) MediaInfo {
+	var genres []string
+	for _, tmdbGenre := range series.Genres {
+		genre := api.FindTvGenreById(tmdbGenre.ID)
+		if genre != "" {
+			genres = append(genres, genre)
+		}
+	}
+	return MediaInfo{
+		Id:            MediaId{id: strconv.Itoa(series.ID), idType: TMDB},
+		Title:         series.Name,
+		OriginalTitle: series.OriginalName,
 		Year:          series.Year(),
 		Description:   series.Overview,
 		IsTvShow:      true,
@@ -219,6 +245,16 @@ func (tmdb TMDbSeries) Year() string {
 	return parts[0]
 }
 
+func (tmdb TMDbSeriesDetails) Year() string {
+	if tmdb.FirstAirDate == "" {
+		return ""
+	}
+
+	parts := strings.Split(tmdb.FirstAirDate, "-")
+
+	return parts[0]
+}
+
 func (tmdb TMDbSeries) PosterURL() string {
 	if tmdb.PosterPath == "" {
 		return ""
@@ -229,6 +265,24 @@ func (tmdb TMDbSeries) PosterURL() string {
 }
 
 func (tmdb TMDbSeries) BackdropURL() string {
+	if tmdb.BackdropPath == "" {
+		return ""
+	}
+	baseURL := "https://image.tmdb.org/t/p/original"
+
+	return fmt.Sprintf("%s%s", baseURL, tmdb.BackdropPath)
+}
+
+func (tmdb TMDbSeriesDetails) PosterURL() string {
+	if tmdb.PosterPath == "" {
+		return ""
+	}
+	baseURL := "https://image.tmdb.org/t/p/original"
+
+	return fmt.Sprintf("%s%s", baseURL, tmdb.PosterPath)
+}
+
+func (tmdb TMDbSeriesDetails) BackdropURL() string {
 	if tmdb.BackdropPath == "" {
 		return ""
 	}
@@ -386,7 +440,7 @@ func (api TMDbAPI) getSeriesEpisodes(id MediaId) ([]TMDbEpisode, error) {
 	} else {
 		return nil, nil
 	}
-	return getTMDbSeriesEpisodes(tmdbID, api.ApiKey)
+	return api.getTMDbSeriesEpisodes(tmdbID)
 }
 
 func (api TMDbAPI) findTMDbByIMDbID(imdbID string) (MediaInfo, error) {
@@ -414,9 +468,9 @@ func (api TMDbAPI) findTMDbByIMDbID(imdbID string) (MediaInfo, error) {
 	}
 }
 
-func getTMDbSeriesEpisodes(seriesID int, TMDbApiKey string) ([]TMDbEpisode, error) {
+func (api TMDbAPI) getTMDbSeriesEpisodes(seriesID int) ([]TMDbEpisode, error) {
 	// Fetch details of the TV series
-	seriesDetails, err := getTMDbSeriesDetails(seriesID, TMDbApiKey)
+	seriesDetails, err := api.LoadSeriesDetails(seriesID)
 	if err != nil {
 		return nil, err
 	}
@@ -426,7 +480,7 @@ func getTMDbSeriesEpisodes(seriesID int, TMDbApiKey string) ([]TMDbEpisode, erro
 	// Iterate over each season and fetch episodes
 	for seasonNumber := 1; seasonNumber <= seriesDetails.NumberOfSeasons; seasonNumber++ {
 		// Fetch episodes for the current season
-		episodes, err := getTMDbSeasonEpisodes(seriesID, seasonNumber, TMDbApiKey)
+		episodes, err := getTMDbSeasonEpisodes(seriesID, seasonNumber, api.ApiKey)
 		if err != nil {
 			return nil, err
 		}
@@ -436,8 +490,8 @@ func getTMDbSeriesEpisodes(seriesID int, TMDbApiKey string) ([]TMDbEpisode, erro
 	return allEpisodes, nil
 }
 
-func getTMDbSeriesDetails(seriesID int, TMDbApiKey string) (TMDbSeriesDetails, error) {
-	url := fmt.Sprintf("https://api.themoviedb.org/3/tv/%d?api_key=%s&language=ru-RU", seriesID, TMDbApiKey)
+func (api TMDbAPI) LoadSeriesDetails(seriesID int) (TMDbSeriesDetails, error) {
+	url := fmt.Sprintf("https://api.themoviedb.org/3/tv/%d?api_key=%s&language=ru-RU", seriesID, api.ApiKey)
 
 	response, err := FetchURL(url, map[string]string{})
 	if err != nil {
@@ -450,6 +504,18 @@ func getTMDbSeriesDetails(seriesID int, TMDbApiKey string) (TMDbSeriesDetails, e
 	}
 
 	return seriesDetails, nil
+}
+
+func (api TMDbAPI) LoadSeriesMediaInfo(seriesID string) (MediaInfo, error) {
+	id, err := strconv.Atoi(seriesID)
+	if err != nil {
+		return MediaInfo{}, err
+	}
+	details, err := api.LoadSeriesDetails(id)
+	if err != nil {
+		return MediaInfo{}, err
+	}
+	return details.MediaInfo(api), nil
 }
 
 func getTMDbSeasonEpisodes(seriesID, seasonNumber int, TMDbApiKey string) ([]TMDbEpisode, error) {

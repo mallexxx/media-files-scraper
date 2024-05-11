@@ -403,7 +403,12 @@ func findMovieMediaInfo(path Path, title string, year string, config Config) (Me
 		Log("Found TMDB:", movie.Id.id, movie.Title, movie.Year)
 		// load info in ru-RU
 		if lang == "en-US" {
-			m, err := tmdbApi.LoadMovieDetails(movie.Id.id)
+			var m MediaInfo
+			if movie.IsTvShow {
+				m, err = tmdbApi.LoadSeriesMediaInfo(movie.Id.id)
+			} else {
+				m, err = tmdbApi.LoadMovieDetails(movie.Id.id)
+			}
 			if err == nil {
 				movie = m
 			} else {
