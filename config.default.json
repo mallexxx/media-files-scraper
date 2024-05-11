@@ -177,5 +177,32 @@
         "id": 37,
         "name": "Western"
         }
-    ]
+    ],
+    "kinopoisk_genres": {
+        "аниме": "Animation",
+        "боевик": "Action",
+        "вестерн": "Western",
+        "военный": "War",
+        "детектив": "Mystery",
+        "детский": "Family",
+        "документальный": "Documentary",
+        "драма": "Drama",
+        "история": "History",
+        "комедия": "Comedy",
+        "концерт": "Music",
+        "криминал": "Crime",
+        "мелодрама": "Romance",
+        "музыка": "Music",
+        "мультфильм": "Animation",
+        "мюзикл": "musical",
+        "новости": "News",
+        "приключения": "Adventure",
+        "реальное ТВ": "TV Movie",
+        "семейный": "Family",
+        "ток-шоу": "Talk",
+        "триллер": "Thriller",
+        "ужасы": "Horror",
+        "фантастика": "Science Fiction",
+        "фэнтези": "Fantasy"
+    }
 }

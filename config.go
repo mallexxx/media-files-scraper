@@ -23,8 +23,9 @@ type Config struct {
 		Series []Path `json:"series"`
 	} `json:"output"`
 
-	TMDbMovieGenres []TMDbGenre `json:"tmdb_movie_genres"`
-	TMDbTvGenres    []TMDbGenre `json:"tmdb_tv_genres"`
+	TMDbMovieGenres []TMDbGenre       `json:"tmdb_movie_genres"`
+	TMDbTvGenres    []TMDbGenre       `json:"tmdb_tv_genres"`
+	KinopoiskGenres map[string]string `json:"kinopoisk_genres"`
 }
 
 type TransmissionConfig struct {

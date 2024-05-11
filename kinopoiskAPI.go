@@ -10,6 +10,7 @@ import (
 type KinopoiskAPI struct {
 	ApiKey      string
 	TvShowsOnly bool
+	GenresMap   map[string]string
 }
 
 type KinopoiskResponse struct {
@@ -144,7 +145,19 @@ func (api KinopoiskAPI) FindMovies(title string, year string, page int) (MovieSe
 				alternativeTitle = name.Name
 			}
 		}
-		genres := mapSlice(movie.Genres, func(genre KinopoiskGenre) string { return genre.Name })
+
+		var genres []string
+		for _, kpGenre := range movie.Genres {
+			var genre string
+			if mappedGenre, ok := api.GenresMap[strings.ToLower(kpGenre.Name)]; ok {
+				genre = mappedGenre
+			} else {
+				genre = kpGenre.Name
+			}
+			if genre != "" {
+				genres = append(genres, genre)
+			}
+		}
 
 		year := ""
 		if movie.Year > 1900 {

@@ -186,7 +186,7 @@ func processMediaItem(path Path, config Config, torrents *map[string]transmissio
 
 	// If no poster found for TMDB item
 	if mediaInfo.Info.Id.idType == TMDB && mediaInfo.Info.PosterUrl == "" {
-		kpApi := KinopoiskAPI{ApiKey: config.KinopoiskApiKey}
+		kpApi := KinopoiskAPI{ApiKey: config.KinopoiskApiKey, GenresMap: config.KinopoiskGenres}
 		Log("fetching posters for", mediaInfo.Info.OriginalTitle)
 		if movie, score, err := findMovieByTitle(kpApi, mediaInfo.Info.OriginalTitle, mediaInfo.Info.Year); err == nil && score > 80 {
 			mediaInfo = MediaFilesInfo{Info: movie, Path: mediaInfo.Path, VideoFiles: mediaInfo.VideoFiles}
@@ -347,7 +347,7 @@ func getMediaInfo(path Path, torrents *map[string]transmissionrpc.Torrent, confi
 		if err == nil {
 			return MediaFilesInfo{Info: mediaInfo, Path: path, VideoFiles: videoFiles}, nil
 		}
-		kpApi := KinopoiskAPI{ApiKey: config.KinopoiskApiKey, TvShowsOnly: true}
+		kpApi := KinopoiskAPI{ApiKey: config.KinopoiskApiKey, TvShowsOnly: true, GenresMap: config.KinopoiskGenres}
 		mediaInfo, score, err := findMovieByTitle(kpApi, title, year)
 
 		if err == nil && score > 80 {
@@ -421,7 +421,7 @@ func findMovieMediaInfo(path Path, title string, year string, config Config) (Me
 	}
 
 	// search Kinopoisk
-	kpApi := KinopoiskAPI{ApiKey: config.KinopoiskApiKey}
+	kpApi := KinopoiskAPI{ApiKey: config.KinopoiskApiKey, GenresMap: config.KinopoiskGenres}
 	if m, s, err := findMovieByTitle(kpApi, title, year); err == nil && s > score {
 		movie = m
 		score = s
