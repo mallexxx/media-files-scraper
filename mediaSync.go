@@ -721,7 +721,7 @@ func syncTvShow(mediaInfo MediaFilesInfo, output Path, config Config) (Path, err
 		linkVideoFileAndRelatedItems(path, outputDir, targetFileName, false)
 
 		// create episode .nfo file if needed
-		nfoPath := path.removingPathExtension().appendingPathExtension("nfo")
+		nfoPath := outputDir.appendingPathComponent(targetFileName + ".nfo")
 		if (!ok || mediaInfo.Info.Id.idType != TMDB) && !nfoPath.exists() {
 			writeEpisodeNfo(s, e, episode.Name, "", mediaInfo.Info, nfoPath)
 		}
