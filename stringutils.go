@@ -170,7 +170,7 @@ func computeSimilarityScore(title1, title2 string, useJaroWinkler bool) int {
 	return int(similarity * 100)
 }
 
-func cleanupMovieFileName(fileName string) (string, string) {
+func cleanupMovieFileName(fileName string, multipleVideoFiles bool) (string, string) {
 	// Regular expression to match the release year in the file name
 	yearRegex := regexp.MustCompile(`\b((?:19\d\d|20\d\d))\b`)
 
@@ -198,10 +198,12 @@ func cleanupMovieFileName(fileName string) (string, string) {
 		movieName = movieName[:seasonIndex]
 	}
 
-	leadingNumberRE := regexp.MustCompile(`^(\d{1,3})(?:\D|$)`)
-	trimmed := leadingNumberRE.ReplaceAllString(movieName, "")
-	if trimmed != "" {
-		movieName = trimmed
+	if multipleVideoFiles {
+		leadingNumberRE := regexp.MustCompile(`^(\d{1,3})(?:[\. ]|$)`)
+		trimmed := leadingNumberRE.ReplaceAllString(movieName, "")
+		if trimmed != "" {
+			movieName = trimmed
+		}
 	}
 
 	episodeRE := regexp.MustCompile(`(?i)e(?:p(?:isode)?)?\s*(\d{1,3})`)

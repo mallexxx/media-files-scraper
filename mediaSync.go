@@ -313,7 +313,7 @@ func getMediaInfo(path Path, torrents *map[string]transmissionrpc.Torrent, confi
 			fileName = path.removingPathExtension().lastPathComponent()
 		}
 		// extract title and year from file name
-		title, year = cleanupMovieFileName(fileName)
+		title, year = cleanupMovieFileName(fileName, len(videoFiles) > 1 /*multipleVideoFiles*/)
 	}
 
 	// could not extract title ?!
@@ -645,7 +645,7 @@ func syncTvShow(mediaInfo MediaFilesInfo, output Path, config Config) (Path, err
 			episodeMap = make(map[int]map[int]TMDbEpisode)
 		}
 		if e == 0 {
-			name, _ := cleanupMovieFileName(path.lastPathComponent())
+			name, _ := cleanupMovieFileName(path.lastPathComponent(), true /*multipleVideoFiles*/)
 			bestRank := -1
 
 			for _, episode := range episodes {
