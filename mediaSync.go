@@ -361,7 +361,7 @@ func getMediaInfo(path Path, torrents *map[string]transmissionrpc.Torrent, confi
 		kpApi := KinopoiskAPI{ApiKey: config.KinopoiskApiKey, TvShowsOnly: true, GenresMap: config.KinopoiskGenres}
 		kpMediaInfo, score, err := findMovieByTitle(kpApi, title, year)
 
-		if err == nil && score > 80 {
+		if err == nil && score > 70 {
 			return MediaFilesInfo{Info: kpMediaInfo, Path: path, VideoFiles: videoFiles}, nil
 
 		} else if err == nil && score > 50 && FindCommonItems(
