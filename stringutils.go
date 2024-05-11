@@ -59,11 +59,8 @@ func convertWindows1251ToUTF8(input string) (string, error) {
 var latinToCyrillicMap = map[string]string{
 	"a": "а", "b": "б", "c": "ц", "d": "д", "e": "е", "f": "ф", "g": "г", "h": "х", "i": "и", "j": "й", "k": "к", "l": "л", "m": "м",
 	"n": "н", "o": "о", "p": "п", "q": "к", "r": "р", "s": "с", "t": "т", "u": "у", "v": "в", "w": "в", "x": "кс", "y": "ы", "z": "з",
-	"A": "А", "B": "Б", "C": "Ц", "D": "Д", "E": "Е", "F": "Ф", "G": "Г", "H": "Х", "I": "И", "J": "Й", "K": "К", "L": "Л", "M": "М",
-	"N": "Н", "O": "О", "P": "П", "Q": "К", "R": "Р", "S": "С", "T": "Т", "U": "У", "V": "В", "W": "В", "X": "КС", "Y": "Ы", "Z": "З",
-	"ch": "ч", "zh": "ж", "sh": "ш", "sch": "щ", "yo": "ё", "jo": "ё", "yu": "ю", "ju": "ю", "ya": "я", "ja": "я",
-	"CH": "Ч", "ZH": "Ж", "SH": "Ш", "SCH": "", "YO": "Ë", "JO": "Ë", "YU": "Ю", "JU": "Ю", "YA": "Я", "JA": "Я",
-	"'": "ь",
+	"ch": "ч", "zh": "ж", "sh": "ш", "sch": "щ", "yo": "ё", "jo": "ё", "yu": "ю", "ju": "ю", "ya": "я", "ja": "я", "'": "ь",
+	"'a": "я", "iy": "ий", "yy": "ый", "ii": "ий",
 }
 var CyrillicToLatinMap = map[string]string{
 	"а": "a", "б": "b", "в": "v", "г": "g", "д": "d", "е": "e", "ё": "yo", "ж": "zh", "з": "z", "и": "i", "й": "j", "к": "k", "л": "l",
@@ -87,23 +84,15 @@ func TransliterateToCyrillic(str string) string {
 	var result strings.Builder
 
 	strlen := len(str)
-	idx := 0
-	for {
-		if idx >= strlen {
-			break
-		}
+	for idx, char := range str {
+		lowerChar := unicode.ToLower(char)
 
-		char := str[idx]
-		if cyrillicChar, ok := latinToCyrillicMap[string(char)]; ok {
+		if cyrillicChar, ok := latinToCyrillicMap[string(lowerChar)]; ok {
 			complexFound := false
 			if strlen-idx >= 3 {
 				// Take the next three characters from the index if possible
-				substr := str[idx : idx+3]
-				if unicode.IsUpper(rune(char)) {
-					substr = strings.ToUpper(substr)
-				} else {
-					substr = strings.ToLower(substr)
-				}
+				substr := strings.ToLower(str[idx : idx+3])
+
 				if complexChar, ok := latinToCyrillicMap[substr]; ok {
 					cyrillicChar = complexChar
 					complexFound = true
@@ -112,24 +101,22 @@ func TransliterateToCyrillic(str string) string {
 			}
 			if !complexFound && strlen-idx >= 2 {
 				// Take the next two characters from the index if possible
-				substr := str[idx : idx+2]
-				if unicode.IsUpper(rune(char)) {
-					substr = strings.ToUpper(substr)
-				} else {
-					substr = strings.ToLower(substr)
-				}
+				substr := strings.ToLower(str[idx : idx+2])
+
 				if complexChar, ok := latinToCyrillicMap[substr]; ok {
 					cyrillicChar = complexChar
 					complexFound = true
 					idx += 1
 				}
 			}
+			if unicode.IsUpper(char) {
+				cyrillicChar = strings.ToUpper(cyrillicChar)
+			}
 
 			result.WriteString(cyrillicChar)
 		} else {
 			result.WriteString(string(char))
 		}
-		idx += 1
 	}
 	// Log("result:", result.String())
 	return result.String()
@@ -266,7 +253,7 @@ func cleanupMovieFileName(fileName string) (string, string) {
 	// Log("8", movieName)
 
 	movieName = norm.NFC.String(movieName)
-	nonAlphaNumRegex := regexp.MustCompile(`[^\p{L}\p{N}]+`)
+	nonAlphaNumRegex := regexp.MustCompile(`[^'\p{L}\p{N}]+`)
 	cleanedMovieName := strings.Trim(nonAlphaNumRegex.ReplaceAllString(movieName, " "), " ")
 
 	y := ""
