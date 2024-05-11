@@ -95,7 +95,7 @@ func runMediaSyncForDir(directory Path, config Config) ([]Path, error) {
 	var matchedItems []Path
 	var torrents map[string]transmissionrpc.Torrent
 	for _, item := range directoryContents {
-		output, err := processMediaItem(item, config, &torrents)
+		output, err := processMediaItem(item, config, &torrents, false)
 		if _, ok := err.(*NoMediaItemsError); ok {
 			continue
 		} else if err != nil {
@@ -109,7 +109,7 @@ func runMediaSyncForDir(directory Path, config Config) ([]Path, error) {
 
 // process one media item in a folder
 // returns paths in output directory matched against the original items
-func processMediaItem(path Path, config Config, torrents *map[string]transmissionrpc.Torrent) ([]Path, error) {
+func processMediaItem(path Path, config Config, torrents *map[string]transmissionrpc.Torrent, isPartOfMultiVideoItem bool) ([]Path, error) {
 	if outDir := videoExistsInOutDirs(path, config); outDir != nil {
 		Log(path, "already processed")
 		output := []Path{*outDir}
@@ -140,7 +140,7 @@ func processMediaItem(path Path, config Config, torrents *map[string]transmissio
 	}
 	Log("➡️ Updating metadata for:", path)
 
-	mediaInfo, err := getMediaInfo(path, torrents, config)
+	mediaInfo, err := getMediaInfo(path, torrents, config, isPartOfMultiVideoItem)
 
 	if multiMoviesErr, ok := err.(*FolderSeemsContainingMultipleMoviesError); ok {
 		tmpMediaInfo := MediaFilesInfo{
@@ -158,7 +158,7 @@ func processMediaItem(path Path, config Config, torrents *map[string]transmissio
 		var output []Path
 		// it seems the media item folder contains separate movie files, process them individually
 		for _, videoFile := range tmpMediaInfo.VideoFiles {
-			output, err = processMediaItem(videoFile, config, torrents)
+			output, err = processMediaItem(videoFile, config, torrents, true)
 			if err != nil {
 				return nil, err
 			}
@@ -261,7 +261,7 @@ func (ce *NoMediaItemsError) Error() string {
 }
 
 // get MediaInfo for a media item
-func getMediaInfo(path Path, torrents *map[string]transmissionrpc.Torrent, config Config) (MediaFilesInfo, error) {
+func getMediaInfo(path Path, torrents *map[string]transmissionrpc.Torrent, config Config, isPartOfMultiVideoItem bool) (MediaFilesInfo, error) {
 	var title string
 	var year string
 	var imdbId string
@@ -313,7 +313,7 @@ func getMediaInfo(path Path, torrents *map[string]transmissionrpc.Torrent, confi
 			fileName = path.removingPathExtension().lastPathComponent()
 		}
 		// extract title and year from file name
-		title, year = cleanupMovieFileName(fileName, len(videoFiles) > 1 /*multipleVideoFiles*/)
+		title, year = cleanupMovieFileName(fileName, isPartOfMultiVideoItem || len(videoFiles) > 1 /*multipleVideoFiles*/)
 	}
 
 	// could not extract title ?!
