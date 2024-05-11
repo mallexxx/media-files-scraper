@@ -287,6 +287,8 @@ func getMediaInfo(path Path, torrents *map[string]transmissionrpc.Torrent, confi
 		*torrents = make(map[string]transmissionrpc.Torrent)
 	}
 
+	tmdbAPI := TMDbAPI{ApiKey: config.TMDbApiKey, MovieGenres: config.TMDbMovieGenres, TvGenres: config.TMDbTvGenres}
+
 	// Find torrent by lowercased file path
 	torrent, ok := (*torrents)[strings.ToLower(string(path))]
 	if ok {
@@ -294,7 +296,7 @@ func getMediaInfo(path Path, torrents *map[string]transmissionrpc.Torrent, confi
 		title, year, imdbId, err = loadTitleYearIMDbIdFromRutracker(*torrent.Comment)
 		if err == nil && imdbId != "" {
 			videoFiles := getVideoFiles(path)
-			mediaInfo, err := loadIMDbMediaInfo(imdbId)
+			mediaInfo, err := loadIMDbMediaInfo(imdbId, tmdbAPI)
 			if err != nil {
 				return MediaFilesInfo{}, err
 			}
@@ -341,8 +343,8 @@ func getMediaInfo(path Path, torrents *map[string]transmissionrpc.Torrent, confi
 		}
 
 		// likely it‘s TV Series
-		tmdbSeriesApi := TMDbAPI{ApiKey: config.TMDbApiKey, TVShowSearch: true, MovieGenres: config.TMDbMovieGenres, TvGenres: config.TMDbTvGenres}
-		mediaInfo, _, err := findMovieByTitle(tmdbSeriesApi, title, year)
+		tmdbAPI.TVShowSearch = true
+		mediaInfo, _, err := findMovieByTitle(tmdbAPI, title, year)
 
 		if err == nil {
 			return MediaFilesInfo{Info: mediaInfo, Path: path, VideoFiles: videoFiles}, nil
@@ -377,6 +379,15 @@ func findMovieMediaInfo(path Path, title string, year string, config Config) (Me
 
 	if err == nil && score > 80 {
 		Log("Found TMDB:", movie.Id.id, movie.Title, movie.Year)
+		// load info in ru-RU
+		if lang == "en-US" {
+			m, err := tmdbApi.LoadMovieDetails(movie.Id.id)
+			if err == nil {
+				movie = m
+			} else {
+				Log("error:", err)
+			}
+		}
 		return movie, score, nil
 	} else if err != nil {
 		Log("TMDB err", err)
@@ -407,7 +418,7 @@ func findMovieMediaInfo(path Path, title string, year string, config Config) (Me
 		movie = m
 		score = s
 
-		if mediaInfo, err := loadIMDbMediaInfo(m.Id.id); err == nil {
+		if mediaInfo, err := loadIMDbMediaInfo(m.Id.id, tmdbApi); err == nil {
 			movie = mediaInfo
 		}
 
@@ -504,7 +515,7 @@ func syncMovie(mediaInfo MediaFilesInfo, output Path) (Path, error) {
 	}
 
 	// download poster/background for Kinopoisk media info
-	if mediaInfo.Info.PosterUrl != "" {
+	if mediaInfo.Info.PosterUrl != "" && !strings.Contains(mediaInfo.Info.PosterUrl, "image.tmdb.org") /* Kodi will download tmdb images itself */ {
 		posterName := fileName + "-poster.jpg"
 		posterPath := outputDir.appendingPathComponent(posterName)
 		err := downloadImage(mediaInfo.Info.PosterUrl, posterPath)
@@ -512,7 +523,7 @@ func syncMovie(mediaInfo MediaFilesInfo, output Path) (Path, error) {
 			Log("Could not download poster", err)
 		}
 	}
-	if mediaInfo.Info.BackdropUrl != "" {
+	if mediaInfo.Info.BackdropUrl != "" && !strings.Contains(mediaInfo.Info.BackdropUrl, "image.tmdb.org") /* Kodi will download tmdb images itself */ {
 		fanartName := fileName + "-fanart.jpg"
 		fanartPath := outputDir.appendingPathComponent(fanartName)
 		err := downloadImage(mediaInfo.Info.BackdropUrl, fanartPath)
@@ -605,7 +616,7 @@ func syncTvShow(mediaInfo MediaFilesInfo, output Path, config Config) (Path, err
 		if mediaInfo.Info.Id == (MediaId{}) {
 			episodeMap = make(map[int]map[int]TMDbEpisode)
 		} else {
-			episodeMap, episodes, err = getEpisodesMap(episodeMap, episodes, mediaInfo.Info.Id, config.TMDbApiKey)
+			episodeMap, episodes, err = getEpisodesMap(episodeMap, episodes, mediaInfo.Info.Id, config)
 		}
 		if err != nil {
 			Log(err)
@@ -664,12 +675,13 @@ func indexOfEpisode(existingFiles []Path, fileName string) int {
 	return -1
 }
 
-func getEpisodesMap(existing map[int]map[int]TMDbEpisode, existingEpisodes []TMDbEpisode, id MediaId, TMDbApiKey string) (map[int]map[int]TMDbEpisode, []TMDbEpisode, error) {
+func getEpisodesMap(existing map[int]map[int]TMDbEpisode, existingEpisodes []TMDbEpisode, id MediaId, config Config) (map[int]map[int]TMDbEpisode, []TMDbEpisode, error) {
 	if existing != nil {
 		return existing, existingEpisodes, nil
 	}
 
-	episodes, err := getSeriesEpisodes(id, TMDbApiKey)
+	api := TMDbAPI{ApiKey: config.TMDbApiKey, MovieGenres: config.TMDbMovieGenres, TvGenres: config.TMDbTvGenres}
+	episodes, err := api.getSeriesEpisodes(id)
 	if err != nil {
 		return nil, nil, err
 	}

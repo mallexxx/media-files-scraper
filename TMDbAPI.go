@@ -43,7 +43,7 @@ type TMDbSearchResults struct {
 // TV Shows
 
 type TMDbFindResponse struct {
-	MovieResults     []interface{} `json:"movie_results"`
+	MovieResults     []TMDbMovie   `json:"movie_results"`
 	PersonResults    []interface{} `json:"person_results"`
 	TVResults        []TMDbSeries  `json:"tv_results"`
 	TVEpisodeResults []interface{} `json:"tv_episode_results"`
@@ -89,6 +89,29 @@ type TMDbTVSearchResults struct {
 
 func (series TMDbSeries) Url() string {
 	return fmt.Sprintf("https://www.themoviedb.org/tv/%d", series.ID)
+}
+
+func (series TMDbSeries) MediaInfo(api TMDbAPI) MediaInfo {
+	var genres []string
+	for _, genreId := range series.GenreIDs {
+
+		genre := api.FindTvGenreById(genreId)
+		if genre != "" {
+			genres = append(genres, genre)
+		}
+	}
+	return MediaInfo{
+		Id:            MediaId{id: strconv.Itoa(series.ID), idType: TMDB},
+		Title:         Coalesce(series.Name, series.Title),
+		OriginalTitle: Coalesce(series.OriginalName, series.OriginalTitle),
+		Year:          series.Year(),
+		Description:   series.Overview,
+		IsTvShow:      true,
+		Url:           series.Url(),
+		PosterUrl:     series.PosterURL(),
+		BackdropUrl:   series.BackdropURL(),
+		Genres:        genres,
+	}
 }
 
 type TMDbSeason struct {
@@ -157,6 +180,35 @@ func (tmdb TMDbMovie) BackdropURL() string {
 	return fmt.Sprintf("%s%s", baseURL, tmdb.BackdropPath)
 }
 
+func (movie TMDbMovie) MediaInfo(api TMDbAPI) MediaInfo {
+	isTvShow := movie.MediaType == "tv"
+	var genres []string
+	for _, genreId := range movie.GenreIDs {
+		var genre string
+		if isTvShow {
+			genre = api.FindTvGenreById(genreId)
+		} else {
+			genre = api.FindMovieGenreById(genreId)
+		}
+		if genre != "" {
+			genres = append(genres, genre)
+		}
+	}
+
+	return MediaInfo{
+		Id:            MediaId{id: strconv.Itoa(movie.Id), idType: TMDB},
+		Title:         Coalesce(movie.Name, movie.Title),
+		OriginalTitle: Coalesce(movie.OriginalName, movie.OriginalTitle),
+		Year:          movie.Year(),
+		Description:   movie.Overview,
+		IsTvShow:      isTvShow,
+		Url:           movie.Url(),
+		PosterUrl:     movie.PosterURL(),
+		BackdropUrl:   movie.BackdropURL(),
+		Genres:        genres,
+	}
+}
+
 func (tmdb TMDbSeries) Year() string {
 	if tmdb.FirstAirDate == "" {
 		return ""
@@ -195,7 +247,8 @@ func (api TMDbAPI) FindMovies(title string, year string, page int) (MovieSearchR
 	}
 }
 
-func (api TMDbAPI) PerformFindMovies(title string, year string, page int) (MovieSearchResult, error) {
+func (api TMDbAPI) PerformFindMovies(titlestr string, year string, page int) (MovieSearchResult, error) {
+	title := strings.ReplaceAll(titlestr, "'", "")
 	query := url.QueryEscape(title)
 	url := fmt.Sprintf("https://api.themoviedb.org/3/search/multi?api_key=%s&page=%d&query=%s&language=%s", api.ApiKey, page, query, api.Language)
 
@@ -225,29 +278,10 @@ func (api TMDbAPI) PerformFindMovies(title string, year string, page int) (Movie
 
 	var results []MediaInfo
 	for _, movie := range searchResults.Results {
-		isTvShow := movie.MediaType == "tv"
-		if !isTvShow && movie.MediaType != "movie" {
+		if movie.MediaType != "tv" && movie.MediaType != "movie" {
 			continue
 		}
-		genres := mapSlice(movie.GenreIDs, func(genreId int) string {
-			if isTvShow {
-				return api.FindTvGenreById(genreId)
-			}
-			return api.FindMovieGenreById(genreId)
-		})
-
-		mediaInfo := MediaInfo{
-			Id:            MediaId{id: strconv.Itoa(movie.Id), idType: TMDB},
-			Title:         Coalesce(movie.Name, movie.Title),
-			OriginalTitle: Coalesce(movie.OriginalName, movie.OriginalTitle),
-			Year:          movie.Year(),
-			Description:   movie.Overview,
-			IsTvShow:      isTvShow,
-			Url:           movie.Url(),
-			PosterUrl:     movie.PosterURL(),
-			BackdropUrl:   movie.BackdropURL(),
-			Genres:        genres,
-		}
+		mediaInfo := movie.MediaInfo(api)
 		results = append(results, mediaInfo)
 	}
 	// take Movies first
@@ -279,7 +313,26 @@ func (api TMDbAPI) FindTvGenreById(genreId int) string {
 	return ""
 }
 
-func (api TMDbAPI) PerformFindSeries(title string, year string, page int) (MovieSearchResult, error) {
+func (api TMDbAPI) LoadMovieDetails(id string) (MediaInfo, error) {
+	url := fmt.Sprintf("https://api.themoviedb.org/3/movie/%s?api_key=%s&language=ru-RU", id, api.ApiKey)
+
+	Log("fetching tmdb movie details", id, url)
+
+	response, err := FetchURL(url, map[string]string{})
+	if err != nil {
+		return MediaInfo{}, err
+	}
+
+	var result TMDbMovie
+	if err := json.Unmarshal(response, &result); err != nil {
+		return MediaInfo{}, err
+	}
+
+	return result.MediaInfo(api), nil
+}
+
+func (api TMDbAPI) PerformFindSeries(titlestr string, year string, page int) (MovieSearchResult, error) {
+	title := strings.ReplaceAll(titlestr, "'", "")
 	query := url.QueryEscape(title)
 	url := fmt.Sprintf("https://api.themoviedb.org/3/search/tv?api_key=%s&page=%d&query=%s&language=ru-RU", api.ApiKey, page, query)
 
@@ -308,37 +361,22 @@ func (api TMDbAPI) PerformFindSeries(title string, year string, page int) (Movie
 	}
 
 	results := mapSlice(searchResults.Results, func(series TMDbSeries) MediaInfo {
-		genres := mapSlice(series.GenreIDs, func(genreId int) string {
-			return api.FindTvGenreById(genreId)
-		})
-		return MediaInfo{
-			Id:            MediaId{id: strconv.Itoa(series.ID), idType: TMDB},
-			Title:         Coalesce(series.Name, series.Title),
-			OriginalTitle: Coalesce(series.OriginalName, series.OriginalTitle),
-			Year:          series.Year(),
-			Description:   series.Overview,
-			IsTvShow:      true,
-			Url:           series.Url(),
-			PosterUrl:     series.PosterURL(),
-			BackdropUrl:   series.BackdropURL(),
-			Genres:        genres,
-		}
+		return series.MediaInfo(api)
 	})
 	return MovieSearchResult{
 		Results:   results,
 		PageCount: searchResults.TotalPages,
 	}, nil
-
 }
 
-func getSeriesEpisodes(id MediaId, TMDbApiKey string) ([]TMDbEpisode, error) {
+func (api TMDbAPI) getSeriesEpisodes(id MediaId) ([]TMDbEpisode, error) {
 	tmdbID := 0
 	if id.idType == IMDB {
-		tvShow, err := findTMDbTVShowByIMDbID(id.id, TMDbApiKey)
-		tmdbID = tvShow.ID
+		tvShow, err := api.findTMDbByIMDbID(id.id)
 		if err != nil {
 			return nil, err
 		}
+		tmdbID, _ = strconv.Atoi(tvShow.Id.id)
 	} else if id.idType == TMDB {
 		id, err := strconv.Atoi(id.id)
 		if err != nil {
@@ -348,31 +386,32 @@ func getSeriesEpisodes(id MediaId, TMDbApiKey string) ([]TMDbEpisode, error) {
 	} else {
 		return nil, nil
 	}
-	return getTMDbSeriesEpisodes(tmdbID, TMDbApiKey)
+	return getTMDbSeriesEpisodes(tmdbID, api.ApiKey)
 }
 
-func findTMDbTVShowByIMDbID(imdbID string, TMDbApiKey string) (TMDbSeries, error) {
-	url := fmt.Sprintf("https://api.themoviedb.org/3/find/%s?api_key=%s&external_source=imdb_id", imdbID, TMDbApiKey)
+func (api TMDbAPI) findTMDbByIMDbID(imdbID string) (MediaInfo, error) {
+	url := fmt.Sprintf("https://api.themoviedb.org/3/find/%s?api_key=%s&external_source=imdb_id&language=ru-RU", imdbID, api.ApiKey)
 
 	// Send HTTP GET request
 	response, err := FetchURL(url, map[string]string{})
 	if err != nil {
-		return TMDbSeries{}, err
+		return MediaInfo{}, err
 	}
 
 	// Parse the JSON response
 	var result TMDbFindResponse
 	if err := json.Unmarshal(response, &result); err != nil {
-		return TMDbSeries{}, err
+		return MediaInfo{}, err
 	}
 
 	// Check if there are any TV show results
-	if len(result.TVResults) == 0 {
-		return TMDbSeries{}, fmt.Errorf("no TV show found for IMDb ID: %s", imdbID)
+	if len(result.TVResults) > 0 {
+		return result.TVResults[0].MediaInfo(api), nil
+	} else if len(result.MovieResults) > 0 {
+		return result.MovieResults[0].MediaInfo(api), nil
+	} else {
+		return MediaInfo{}, fmt.Errorf("no TMDb item found for IMDb ID %s", imdbID)
 	}
-
-	// Return the first TV show result
-	return result.TVResults[0], nil
 }
 
 func getTMDbSeriesEpisodes(seriesID int, TMDbApiKey string) ([]TMDbEpisode, error) {

@@ -25,7 +25,8 @@ func (r ImdbResult) Url() string {
 	return fmt.Sprintf("https://www.imdb.com/title/%s", r.IMDbID)
 }
 
-func (api IMDbAPI) FindMovies(title string, year string, page int) (MovieSearchResult, error) {
+func (api IMDbAPI) FindMovies(titlestr string, year string, page int) (MovieSearchResult, error) {
+	title := strings.ReplaceAll(titlestr, "'", "")
 	query := url.QueryEscape(title)
 	searchURL := fmt.Sprintf("https://www.imdb.com/find?q=%s&s=tt|accept-language=ru-ru", query)
 
@@ -105,14 +106,21 @@ func (api IMDbAPI) FindMovies(title string, year string, page int) (MovieSearchR
 	}, nil
 }
 
-func loadIMDbMediaInfo(id string) (MediaInfo, error) {
+func loadIMDbMediaInfo(id string, tmdbApi TMDbAPI) (MediaInfo, error) {
+	// try loading from tmdb by imdb id first
+	mediaInfo, err := tmdbApi.findTMDbByIMDbID(id)
+	if err == nil && mediaInfo.PosterUrl != "" {
+		return mediaInfo, nil
+	}
+
 	// Prepare the IMDb URL
 	imdbURL := fmt.Sprintf("https://www.imdb.com/title/%s", id)
 
-	Log("fetching imdb", id)
+	Log("fetching imdb", id, imdbURL)
 
 	response, err := FetchURL(imdbURL, map[string]string{
-		"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.36",
+		"User-Agent":      "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.36",
+		"Accept-Language": "ru-RU,ru;q=0.9",
 	})
 	if err != nil {
 		return MediaInfo{}, err
@@ -133,18 +141,35 @@ func loadIMDbMediaInfo(id string) (MediaInfo, error) {
 
 	title := titleSpan.Text()
 
-	year := strings.TrimSpace(titleHeader.Find("li.ipc-inline-list__item").First().Text())
-
+	// find year
+	var year string
 	isTvShow := false
-	titleHeader.Find("span.ipc-metadata-list-summary-item__li").Each(func(i int, span *goquery.Selection) {
+
+	yearRegex := regexp.MustCompile(`(?:19|20)\d\d`)
+	titleHeader.Find("li.ipc-inline-list__item").Each(func(i int, span *goquery.Selection) {
 		text := span.Text()
+		if len(yearRegex.FindStringSubmatch(text)) > 0 {
+			year = strings.TrimSpace(text)
+		}
 		if text == "TV Series" || text == "TV Mini Series" {
 			isTvShow = true
 		}
 	})
+	if year == "" || !isTvShow {
+		titleHeader.Find("span.ipc-metadata-list-summary-item__li").Each(func(i int, span *goquery.Selection) {
+			text := span.Text()
+			if len(yearRegex.FindStringSubmatch(text)) > 0 {
+				year = strings.TrimSpace(text)
+			}
+			if text == "TV Series" || text == "TV Mini Series" {
+				isTvShow = true
+			}
+		})
+	}
 
 	description := strings.TrimSpace(doc.Find("p[data-testid=plot]").Text())
 
+	// find genre
 	genreRegex := regexp.MustCompile(`"id":"(\w+)","__typename":"Genre"`)
 	matches := genreRegex.FindAllStringSubmatch(html, -1)
 	var genres []string
@@ -152,24 +177,35 @@ func loadIMDbMediaInfo(id string) (MediaInfo, error) {
 		genres = append(genres, match[1])
 	}
 
+	// find poster image
 	imgRegex := regexp.MustCompile(`<img.*?srcSet="([^"]+)"`)
 	var posterUrl string
 	if match := imgRegex.FindStringSubmatch(html); len(match) > 1 {
 		posterUrl = strings.Split(match[1], ",")[0]
 	}
 
-	result := MediaInfo{
-		Title: title,
-		Year:  year,
-		Id: MediaId{
+	var mediaId MediaId
+	if mediaInfo.Id != (MediaId{}) {
+		mediaId = mediaInfo.Id
+	} else {
+		mediaId = MediaId{
 			id:     id,
 			idType: IMDB,
-		},
-		Url:         imdbURL,
-		IsTvShow:    isTvShow,
-		Description: description,
-		Genres:      genres,
-		PosterUrl:   posterUrl,
+		}
+	}
+
+	result := MediaInfo{
+		Title:            Coalesce(mediaInfo.Title, title),
+		OriginalTitle:    mediaInfo.OriginalTitle,
+		AlternativeTitle: mediaInfo.AlternativeTitle,
+		Year:             year,
+		Id:               mediaId,
+		Url:              Coalesce(mediaInfo.Url, imdbURL),
+		IsTvShow:         isTvShow,
+		Description:      description,
+		Genres:           genres,
+		PosterUrl:        Coalesce(mediaInfo.PosterUrl, posterUrl),
+		BackdropUrl:      mediaInfo.BackdropUrl,
 	}
 
 	return result, nil

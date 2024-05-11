@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/url"
 	"strconv"
+	"strings"
 )
 
 type KinopoiskAPI struct {
@@ -72,7 +73,8 @@ type KinopoiskGenre struct {
 }
 
 // TODO: Implement https://www.kinopoisk.ru/index.php?kp_query=fallout website parsing
-func (api KinopoiskAPI) FindMovies(title string, year string, page int) (MovieSearchResult, error) {
+func (api KinopoiskAPI) FindMovies(titlestr string, year string, page int) (MovieSearchResult, error) {
+	title := strings.ReplaceAll(titlestr, "'", "")
 	query := url.QueryEscape(title)
 	url := fmt.Sprintf("https://api.kinopoisk.dev/v1.4/movie/search?page=%d&limit=20&query=%s", page, query)
 
