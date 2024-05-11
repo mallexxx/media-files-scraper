@@ -364,6 +364,12 @@ func (api TMDbAPI) FindTvGenreById(genreId int) string {
 			return genre.Name
 		}
 	}
+	// fallback to movie genres
+	for _, genre := range api.MovieGenres {
+		if genre.ID == genreId {
+			return genre.Name
+		}
+	}
 	panic(fmt.Sprintf("TV Genre with id %d not found", genreId))
 }
 
