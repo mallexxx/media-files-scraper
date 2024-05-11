@@ -97,7 +97,11 @@ func (api IMDbAPI) FindMovies(titlestr string, year string, page int) (MovieSear
 
 func (api IMDbAPI) LoadMediaInfo(id string, tmdbApi TMDbAPI) (MediaInfo, error) {
 	// try loading from tmdb by imdb id first
-	mediaInfo, err := tmdbApi.findTMDbByIMDbID(id)
+	var mediaInfo MediaInfo
+	var err error
+	if tmdbApi.ApiKey != "" {
+		mediaInfo, err = tmdbApi.findTMDbByIMDbID(id)
+	}
 	if err == nil && mediaInfo.PosterUrl != "" {
 		return mediaInfo, nil
 	}

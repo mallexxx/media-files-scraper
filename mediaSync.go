@@ -184,12 +184,37 @@ func processMediaItem(path Path, config Config, torrents *map[string]transmissio
 		return []Path{}, err
 	}
 
-	// If no poster found for TMDB item
-	if mediaInfo.Info.Id.idType == TMDB && mediaInfo.Info.PosterUrl == "" {
-		kpApi := KinopoiskAPI{ApiKey: config.KinopoiskApiKey, GenresMap: config.GenresMap}
+	// If no poster or genres found for TMDB item
+	if mediaInfo.Info.Id.idType == TMDB && (mediaInfo.Info.PosterUrl == "" || len(mediaInfo.Info.Genres) == 0) {
+		kpApi := KinopoiskAPI{ApiKey: config.KinopoiskApiKey, TvShowsOnly: mediaInfo.Info.IsTvShow, GenresMap: config.GenresMap}
+		imdbApi := IMDbAPI{GenresMap: config.GenresMap}
 		Log("fetching posters for", mediaInfo.Info.OriginalTitle)
-		if movie, score, err := findMovieByTitle(kpApi, mediaInfo.Info.OriginalTitle, mediaInfo.Info.Year); err == nil && score > 80 {
+		// fetch from Kinopoisk
+		if movie, score, err := findMovieByTitle(kpApi, Coalesce(mediaInfo.Info.OriginalTitle, mediaInfo.Info.Title), mediaInfo.Info.Year); err == nil && score > 80 {
 			mediaInfo = MediaFilesInfo{Info: movie, Path: mediaInfo.Path, VideoFiles: mediaInfo.VideoFiles}
+
+			// alternatively fetch from IMDb
+		} else if movie, _, err := findMovieByTitle(imdbApi, Coalesce(mediaInfo.Info.OriginalTitle, mediaInfo.Info.Title), mediaInfo.Info.Year); err == nil {
+			movie, err = imdbApi.LoadMediaInfo(movie.Id.id, TMDbAPI{})
+			if err == nil {
+				tmdbAPI := TMDbAPI{ApiKey: config.TMDbApiKey, MovieGenres: config.TMDbMovieGenres, TvGenres: config.TMDbTvGenres}
+				if tmdbMovie, err := tmdbAPI.findTMDbByIMDbID(movie.Id.id); err == nil && tmdbMovie.Id.id == mediaInfo.Info.Id.id {
+					info := MediaInfo{
+						Id:               mediaInfo.Info.Id,
+						Title:            mediaInfo.Info.Title,
+						OriginalTitle:    mediaInfo.Info.OriginalTitle,
+						AlternativeTitle: Coalesce(mediaInfo.Info.AlternativeTitle, movie.AlternativeTitle),
+						Year:             Coalesce(mediaInfo.Info.Year, movie.Year),
+						Description:      Coalesce(mediaInfo.Info.Description, movie.Description),
+						IsTvShow:         mediaInfo.Info.IsTvShow,
+						Url:              mediaInfo.Info.Url,
+						PosterUrl:        Coalesce(mediaInfo.Info.PosterUrl, movie.PosterUrl),
+						BackdropUrl:      Coalesce(mediaInfo.Info.BackdropUrl, movie.BackdropUrl),
+						Genres:           movie.Genres,
+					}
+					mediaInfo = MediaFilesInfo{Info: info, Path: mediaInfo.Path, VideoFiles: mediaInfo.VideoFiles}
+				}
+			}
 		}
 	}
 
@@ -340,10 +365,9 @@ func getMediaInfo(path Path, torrents *map[string]transmissionrpc.Torrent, confi
 
 		if err == nil && score > 80 {
 			return MediaFilesInfo{Info: mediaInfo, Path: path, VideoFiles: videoFiles}, nil
-		}
 
-		// if not found and there‘s cyrillic `e` it‘s likely it may be transliterated to `ё`
-		if strings.Contains(title, "е") {
+		} else if strings.Contains(title, "е") {
+			// if not found and there‘s cyrillic `e` it‘s likely it may be transliterated to `ё`
 			Logf("Prompting AI for corrected ё usage\n")
 			correctedTitle, err := promptAiForCorrectedYoLetterUsage(title, config.OpenAiApiKey)
 			if err != nil {

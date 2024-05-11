@@ -76,13 +76,20 @@ type KinopoiskGenre struct {
 func (api KinopoiskAPI) FindMovies(titlestr string, year string, page int) (MovieSearchResult, error) {
 	title := strings.ReplaceAll(titlestr, "'", "")
 	query := url.QueryEscape(title)
-	url := fmt.Sprintf("https://api.kinopoisk.dev/v1.4/movie/search?page=%d&limit=20&query=%s", page, query)
+	url := fmt.Sprintf("https://api.kinopoisk.dev/v1.4/movie/search?page=%d&limit=40&query=%s", page, query)
+
+	y := ""
+	// If year is provided, add it to the URL
+	if year != "" {
+		url += "&year=" + year
+		y = "y: " + year
+	}
 
 	p := ""
 	if page > 1 {
 		p = "page: " + strconv.Itoa(page)
 	}
-	Log("fetching kp", title, p, url)
+	Log("fetching kp", title, y, p, url)
 
 	response, err := FetchURL(url, map[string]string{
 		"Accept":    "application/json",
