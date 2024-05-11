@@ -199,7 +199,7 @@ func cleanupMovieFileName(fileName string, multipleVideoFiles bool) (string, str
 	}
 
 	if multipleVideoFiles {
-		leadingNumberRE := regexp.MustCompile(`^(\d{1,3})(?:[\. ]|$)`)
+		leadingNumberRE := regexp.MustCompile(`^(\d{1,3})(?:[\. _]|$)`)
 		trimmed := leadingNumberRE.ReplaceAllString(movieName, "")
 		if trimmed != "" {
 			movieName = trimmed
