@@ -213,7 +213,7 @@ func cleanupMovieFileName(fileName string) (string, string) {
 	}
 
 	episodeRE := regexp.MustCompile(`(?i)e(?:p(?:isode)?)?\s*(\d{1,3})`)
-	if match := episodeRE.FindStringSubmatch(fileName); len(match) == 2 {
+	if match := episodeRE.FindStringSubmatch(movieName); len(match) == 2 {
 		epIndex := episodeRE.FindStringIndex(movieName)[0]
 		trimmed := movieName[:epIndex]
 		if trimmed != "" {
