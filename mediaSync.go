@@ -190,7 +190,7 @@ func processMediaItem(path Path, config Config, torrents *map[string]transmissio
 		imdbApi := IMDbAPI{GenresMap: config.GenresMap}
 		Log("fetching posters for", mediaInfo.Info.OriginalTitle)
 		// fetch from Kinopoisk
-		if movie, score, err := findMovieByTitle(kpApi, Coalesce(mediaInfo.Info.OriginalTitle, mediaInfo.Info.Title), mediaInfo.Info.Year); err == nil && score > 80 {
+		if movie, score, err := findMovieByTitle(kpApi, Coalesce(mediaInfo.Info.OriginalTitle, mediaInfo.Info.Title), mediaInfo.Info.Year); err == nil && score > 92 {
 			mediaInfo = MediaFilesInfo{Info: movie, Path: mediaInfo.Path, VideoFiles: mediaInfo.VideoFiles}
 
 			// alternatively fetch from IMDb
@@ -198,7 +198,7 @@ func processMediaItem(path Path, config Config, torrents *map[string]transmissio
 			movie, err = imdbApi.LoadMediaInfo(movie.Id.id, TMDbAPI{})
 			if err == nil {
 				tmdbAPI := TMDbAPI{ApiKey: config.TMDbApiKey, MovieGenres: config.TMDbMovieGenres, TvGenres: config.TMDbTvGenres}
-				if tmdbMovie, err := tmdbAPI.findTMDbByIMDbID(movie.Id.id); (err == nil && tmdbMovie.Id.id == mediaInfo.Info.Id.id) || score > 90 {
+				if tmdbMovie, err := tmdbAPI.findTMDbByIMDbID(movie.Id.id); (err == nil && tmdbMovie.Id.id == mediaInfo.Info.Id.id) || score > 92 {
 					info := MediaInfo{
 						Id:               mediaInfo.Info.Id,
 						Title:            mediaInfo.Info.Title,
