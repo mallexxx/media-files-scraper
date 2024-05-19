@@ -126,7 +126,11 @@ func (api KinopoiskAPI) FindMovies(titlestr string, year string, page int) (Movi
 		if movie.ExternalId.TMDb > 0 {
 			id = strconv.Itoa(movie.ExternalId.TMDb)
 			idType = TMDB
-			url = fmt.Sprintf("https://themoviedb.org/movie/%s/", id)
+			if movie.IsSeries {
+				url = fmt.Sprintf("https://themoviedb.org/tv/%s/", id)
+			} else {
+				url = fmt.Sprintf("https://themoviedb.org/movie/%s/", id)
+			}
 		} else if movie.ExternalId.IMDb != "" {
 			id = movie.ExternalId.IMDb
 			idType = IMDB
