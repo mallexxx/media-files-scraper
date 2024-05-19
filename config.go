@@ -96,9 +96,13 @@ func (c Config) sourceDirectoryForVideoSymlink(symlink Path) (Path, error) {
 		return "", err
 	}
 
+	fileName := Path(targetPath).lastPathComponent()
 	targetPath = strings.ToLower(targetPath)
 	for _, path := range c.Directories {
 		if strings.HasPrefix(targetPath, strings.ToLower(strings.TrimSuffix(string(path.appendingPathComponent("a")), "a"))) {
+			if !path.appendingPathComponent(fileName).exists() {
+				return "", fmt.Errorf("symlink valid but filename differs from %s", fileName)
+			}
 			return path, nil
 		}
 	}

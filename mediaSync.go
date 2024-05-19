@@ -51,17 +51,17 @@ func runMediaSync(config Config) error {
 					if videoSymlink := path.findRelatedVideoSymlink(); videoSymlink != "" {
 						sourceDir, err := config.sourceDirectoryForVideoSymlink(videoSymlink)
 						if err != nil {
-							Log("❌ Error reading symlink:", err)
+							Log("❌", videoSymlink.lastPathComponent(), "error reading symlink:", err)
 						} else /*if sourceDir != ""*/ {
 							if !sourceDir.exists() {
-								Log("⏏️ Symlink points to an unavailable source:", sourceDir)
+								Log("⏏️", videoSymlink.lastPathComponent(), "Symlink points to an unavailable source:", sourceDir)
 								existingItems[strings.ToLower(string(videoSymlink))] = true
 								existingItems[strings.ToLower(string(videoSymlink.removingPathExtension().appendingPathExtension("nfo")))] = true
 								existingItems[strings.ToLower(string(videoSymlink.removingPathExtension())+"-poster.jpg")] = true
 								existingItems[strings.ToLower(string(videoSymlink.removingPathExtension())+"-fanart.jpg")] = true
 								continue
 							} else {
-								Log("🚢 Symlink points to source:", sourceDir)
+								Log("🚢", videoSymlink.lastPathComponent(), "Symlink points to source:", sourceDir)
 								continue
 							}
 						}
@@ -709,6 +709,7 @@ func syncTvShow(mediaInfo MediaFilesInfo, output Path, config Config) (Path, err
 			// TODO: if file found for an episode but no episode in the series - should throw an error (and probably reconsider the series choice)
 			Log("⚠️", s, e, path, "episode not found!")
 		}
+		// TODO: load episode map from kinopoisk
 
 		targetFileName := path.removingPathExtension().lastPathComponent()
 		seasonEpisode := fmt.Sprintf("S%02dE%02d", s, e)
