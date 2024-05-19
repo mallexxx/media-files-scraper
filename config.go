@@ -107,6 +107,9 @@ func (c Config) sourceDirectoryForVideoSymlink(symlink Path) (Path, Path, error)
 	targetLower := strings.ToLower(target)
 	for _, path := range c.Directories {
 		if strings.HasPrefix(targetLower, strings.ToLower(strings.TrimSuffix(string(path.appendingPathComponent("a")), "a"))) {
+			if path.exists() && !targetPath.exists() {
+				return "", "", fmt.Errorf("file does not exist")
+			}
 			return targetPath, path, nil
 		}
 	}
