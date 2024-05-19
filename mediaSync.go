@@ -49,7 +49,7 @@ func runMediaSync(config Config) error {
 			for _, path := range contents {
 				if _, ok := existingItems[strings.ToLower(string(path))]; !ok {
 					if videoSymlink := path.findRelatedVideoSymlink(); videoSymlink != "" {
-						sourceDir, err := config.sourceDirectoryForVideoSymlink(videoSymlink)
+						targetPath, sourceDir, err := config.sourceDirectoryForVideoSymlink(videoSymlink)
 						if err != nil {
 							Log("❌", videoSymlink.lastPathComponent(), "error reading symlink:", err)
 						} else /*if sourceDir != ""*/ {
@@ -61,7 +61,7 @@ func runMediaSync(config Config) error {
 								existingItems[strings.ToLower(string(videoSymlink.removingPathExtension())+"-fanart.jpg")] = true
 								continue
 							} else {
-								Log("🚢", videoSymlink.lastPathComponent(), "Symlink points to source:", sourceDir)
+								Log("🚢", videoSymlink.lastPathComponent(), "Symlink points to:", targetPath)
 								continue
 							}
 						}

@@ -92,22 +92,23 @@ func LoadConfig(configFile Path) (*Config, error) {
 	return &config, nil
 }
 
-func (c Config) sourceDirectoryForVideoSymlink(symlink Path) (Path, error) {
-	targetPath, err := os.Readlink(string(symlink))
+func (c Config) sourceDirectoryForVideoSymlink(symlink Path) (Path, Path, error) {
+	target, err := os.Readlink(string(symlink))
 	if err != nil {
-		return "", err
+		return "", "", err
 	}
 
-	fileName := Path(targetPath).lastPathComponent()
+	targetPath := Path(target)
+	fileName := targetPath.lastPathComponent()
 	if norm.NFC.String(fileName) != norm.NFC.String(symlink.lastPathComponent()) {
-		return "", fmt.Errorf("symlink valid but filename differs from %s", fileName)
+		return "", "", fmt.Errorf("symlink valid but filename differs from %s", fileName)
 	}
 
-	targetPath = strings.ToLower(targetPath)
+	targetLower := strings.ToLower(target)
 	for _, path := range c.Directories {
-		if strings.HasPrefix(targetPath, strings.ToLower(strings.TrimSuffix(string(path.appendingPathComponent("a")), "a"))) {
-			return path, nil
+		if strings.HasPrefix(targetLower, strings.ToLower(strings.TrimSuffix(string(path.appendingPathComponent("a")), "a"))) {
+			return targetPath, path, nil
 		}
 	}
-	return "", nil
+	return "", "", nil
 }
