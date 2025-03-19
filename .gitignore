@@ -4,6 +4,7 @@ build/
 .vscode/
 
 log.txt
+test.log
 media/
 out/
 cache/
