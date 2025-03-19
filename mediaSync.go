@@ -125,7 +125,7 @@ func processMediaItem(path Path, config Config, torrents *map[string]transmissio
 			if err != nil {
 				return []Path{}, err
 			}
-			// it‘s a fake (empty) directory, movies from the original dir are placed nearby
+			// it's a fake (empty) directory, movies from the original dir are placed nearby
 			if len(contents) == 0 {
 				videoFiles := getVideoFiles(path)
 				moviesDir := findSuitableDirectoryForSymlink(path, config.Output.Movies)
@@ -257,7 +257,7 @@ RuleLoop:
 		return fmt.Errorf("torrent not found for %s", string(mediaInfo.Path))
 	}
 	Log("moving torrent", *torrent.Name, "to", outDir)
-	err := moveTorrent(*torrent.ID, outDir, config.Transmission.Rpc)
+	err := moveTorrentCached(*torrent.ID, outDir, config.Transmission.Rpc)
 	if err != nil {
 		return err
 	}
@@ -300,7 +300,7 @@ func getMediaInfo(path Path, torrents *map[string]transmissionrpc.Torrent, confi
 
 	// load torrents if needed
 	if *torrents == nil && config.Transmission.Rpc != "" {
-		torrentsVal, err := getTorrentsByPath(config.Transmission.Rpc)
+		torrentsVal, err := getTorrentsByPathCached(config.Transmission.Rpc)
 		if err != nil {
 			Log("❌ could not load torrent list", err)
 		} else {
@@ -317,6 +317,7 @@ func getMediaInfo(path Path, torrents *map[string]transmissionrpc.Torrent, confi
 	// Find torrent by lowercased file path
 	torrent, ok := (*torrents)[strings.ToLower(string(path))]
 	if ok {
+		Log("🔍 found torrent", *torrent.Name)
 		// load torrent info from tracker
 		title, year, imdbId, err = loadTitleYearIMDbIdFromRutracker(*torrent.Comment)
 		if err == nil && imdbId != "" {
@@ -330,6 +331,8 @@ func getMediaInfo(path Path, torrents *map[string]transmissionrpc.Torrent, confi
 		} else if err != nil {
 			Log("could not retreive torrent data:", err)
 		}
+	} else {
+		Log("🔍 no torrent found for", path)
 	}
 	if title == "" {
 		var fileName string
@@ -350,16 +353,16 @@ func getMediaInfo(path Path, torrents *map[string]transmissionrpc.Torrent, confi
 	if len(videoFiles) > 1 {
 		seasonEpisodeRE := regexp.MustCompile(`(?:[Ss](?:eason)?)[\s\W]*(\d{1,2})[\s\W]*(?:[Ee](?:pisode)?)\s*(\d+)`)
 		if match := seasonEpisodeRE.FindStringSubmatch(videoFiles[0].lastPathComponent()); len(match) == 3 {
-			// it‘s a tv series – name matches S01E02 pattern
+			// it's a tv series – name matches S01E02 pattern
 		} else if len(videoFiles) == 2 && computeSimilarityScore(string(videoFiles[0]), string(videoFiles[1]), false) > 90 {
-			// likely it‘s a 2-part movie
+			// likely it's a 2-part movie
 			mediaInfo, score, err := findMovieMediaInfo(path, title, year, config)
 			if err == nil && score > 80 {
 				return MediaFilesInfo{Info: mediaInfo, Path: path, VideoFiles: videoFiles}, nil
 			}
 		}
 
-		// likely it‘s TV Series
+		// likely it's TV Series
 		tmdbAPI.TVShowSearch = true
 		mediaInfo, score, err := findMovieByTitle(tmdbAPI, title, year)
 
@@ -367,7 +370,7 @@ func getMediaInfo(path Path, torrents *map[string]transmissionrpc.Torrent, confi
 			return MediaFilesInfo{Info: mediaInfo, Path: path, VideoFiles: videoFiles}, nil
 
 		} else if strings.Contains(title, "е") {
-			// if not found and there‘s cyrillic `e` it‘s likely it may be transliterated to `ё`
+			// if not found and there's cyrillic `e` it's likely it may be transliterated to `ё`
 			Logf("Prompting AI for corrected ё usage\n")
 			correctedTitle, err := promptAiForCorrectedYoLetterUsage(title, config.OpenAiApiKey)
 			if err != nil {
@@ -426,7 +429,7 @@ func findMovieMediaInfo(path Path, title string, year string, config Config) (Me
 	tmdbApi := TMDbAPI{ApiKey: config.TMDbApiKey, Language: lang, TVShowSearch: false, MovieGenres: config.TMDbMovieGenres, TvGenres: config.TMDbTvGenres}
 	movie, score, err := findMovieByTitle(tmdbApi, title, year)
 
-	// if not found and there‘s cyrillic `e` it‘s likely it may be transliterated to `ё`
+	// if not found and there's cyrillic `e` it's likely it may be transliterated to `ё`
 	if lang == "ru-RU" && (err != nil || score <= 80) && strings.Contains(title, "е") {
 		Logf("Prompting AI for corrected ё usage\n")
 		correctedTitle, e := promptAiForCorrectedYoLetterUsage(title, config.OpenAiApiKey)
@@ -545,7 +548,7 @@ func findMovieMediaInfo(path Path, title string, year string, config Config) (Me
 
 	Log("Result:", movie.Id.id, movie.Title, movie.Year)
 	if score == 0 {
-		// TODO: Don‘t crash, but copy item with the present info, log failure
+		// TODO: Don't crash, but copy item with the present info, log failure
 		panic("movie not found")
 	}
 	return movie, score, nil

@@ -2,9 +2,11 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"net/url"
+	"os"
 	"path/filepath"
 	"regexp"
 	"strings"
@@ -67,6 +69,36 @@ func loadTitleYearIMDbIdFromRutracker(url string) (string, string, string, error
 		return "", "", "", err
 	}
 
+	// Generate a cache key for this URL
+	cacheKey := ReplaceInvalidFilenameChars(url) + "_rutracker.json"
+	cacheFilename := filepath.Join(CacheDir, cacheKey)
+
+	// Check if the cached data exists
+	if _, err := os.Stat(cacheFilename); err == nil {
+		// If cached data exists, read and return it
+		Log("🔄 Using cached Rutracker data for URL:", url)
+		data, err := os.ReadFile(cacheFilename)
+		if err != nil {
+			return "", "", "", err
+		}
+
+		var cachedResponse struct {
+			Title  string `json:"title"`
+			Year   string `json:"year"`
+			IMDbID string `json:"imdb_id"`
+		}
+		if err := json.Unmarshal(data, &cachedResponse); err != nil {
+			return "", "", "", err
+		}
+
+		return cachedResponse.Title, cachedResponse.Year, cachedResponse.IMDbID, nil
+	}
+
+	// Cache miss - making a real API call
+	if os.Getenv("TEST_MODE") == "true" {
+		Log("💥💥💥 TEST MODE: Making real Rutracker request (cache miss) for:", url)
+	}
+
 	// Fetch HTML content
 	resp, err := http.Get(url)
 	if err != nil {
@@ -92,6 +124,26 @@ func loadTitleYearIMDbIdFromRutracker(url string) (string, string, string, error
 		return "", "", "", err
 	}
 	Logf("   Cleaned: %s\n", title)
+
+	// Cache the results
+	cachedResponse := struct {
+		Title  string `json:"title"`
+		Year   string `json:"year"`
+		IMDbID string `json:"imdb_id"`
+	}{
+		Title:  title,
+		Year:   year,
+		IMDbID: topic.IMDbID,
+	}
+
+	data, err := json.Marshal(cachedResponse)
+	if err != nil {
+		Log("Error marshaling Rutracker response for cache:", err)
+	} else {
+		if err := os.WriteFile(cacheFilename, data, 0644); err != nil {
+			Log("Error writing Rutracker cache file:", err)
+		}
+	}
 
 	return title, year, topic.IMDbID, nil
 }

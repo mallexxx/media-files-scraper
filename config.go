@@ -50,7 +50,14 @@ type TorrentSortingRule struct {
 func ConfigPath(path Path) Path {
 	if path == "" {
 		exePath, _ := os.Executable()
-		return Path(filepath.Dir(exePath)).appendingPathComponent("config.json")
+		if _, err := os.Stat(string(Path(filepath.Dir(exePath)).appendingPathComponent("config.json"))); err == nil {
+			return Path(filepath.Dir(exePath)).appendingPathComponent("config.json")
+		}
+		configPath := "config.json"
+		if _, err := os.Stat(configPath); err == nil {
+			return Path(configPath)
+		}
+		return ""
 	}
 	if path.isDirectory() {
 		return path.appendingPathComponent("config.json")

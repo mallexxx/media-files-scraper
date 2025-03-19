@@ -376,6 +376,30 @@ func linkVideoFileAndRelatedItems(videoFile Path, output Path, targetNameWithout
 }
 
 func downloadImage(url string, filepath Path) error {
+	// In test mode, just create an empty file instead of downloading
+	if os.Getenv("TEST_MODE") == "true" {
+		Log("🧪 TEST MODE: Creating empty image file instead of downloading:", filepath)
+
+		// Ensure the directory exists
+		dir := Path(string(filepath.removingLastPathComponent()))
+		if !dir.exists() {
+			if err := os.MkdirAll(string(dir), 0755); err != nil {
+				return err
+			}
+		}
+
+		// Create an empty file
+		out, err := os.Create(string(filepath))
+		if err != nil {
+			return err
+		}
+		defer out.Close()
+
+		Logf("Empty image placeholder created at %s\n", filepath)
+		return nil
+	}
+
+	// Standard download for non-test mode
 	// Send GET request to fetch the image
 	resp, err := http.Get(url)
 	if err != nil {
